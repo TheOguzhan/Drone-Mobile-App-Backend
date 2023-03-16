@@ -2,7 +2,33 @@
 
 package runtime
 
-// The schema-stitching logic is generated in github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/runtime.go
+import (
+	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/schema"
+	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/user"
+	"github.com/google/uuid"
+)
+
+// The init function reads all schema descriptors with runtime code
+// (default values, validators, hooks and policies) and stitches it
+// to their package variables.
+func init() {
+	userHooks := schema.User{}.Hooks()
+	user.Hooks[0] = userHooks[0]
+	userFields := schema.User{}.Fields()
+	_ = userFields
+	// userDescEmail is the schema descriptor for email field.
+	userDescEmail := userFields[2].Descriptor()
+	// user.EmailValidator is a validator for the "email" field. It is called by the builders before save.
+	user.EmailValidator = userDescEmail.Validators[0].(func(string) error)
+	// userDescIsUserConfirmed is the schema descriptor for is_user_confirmed field.
+	userDescIsUserConfirmed := userFields[5].Descriptor()
+	// user.DefaultIsUserConfirmed holds the default value on creation for the is_user_confirmed field.
+	user.DefaultIsUserConfirmed = userDescIsUserConfirmed.Default.(bool)
+	// userDescID is the schema descriptor for id field.
+	userDescID := userFields[0].Descriptor()
+	// user.DefaultID holds the default value on creation for the id field.
+	user.DefaultID = userDescID.Default.(func() uuid.UUID)
+}
 
 const (
 	Version = "v0.11.9"                                         // Version of ent codegen.

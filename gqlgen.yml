@@ -1,6 +1,7 @@
 # Where are all the schema files located? globs are supported eg  src/**/*.graphqls
 schema:
-  - graph/*.graphqls
+  - ent.graphql
+  - users.graphql
 
 # Where should the generated server code go?
 exec:
@@ -20,8 +21,7 @@ model:
 # Where should the resolver implementations go?
 resolver:
   layout: follow-schema
-  dir: graph
-  package: graph
+  dir: .
 
 # Optional: turn on use ` + "`" + `gqlgen:"fieldName"` + "`" + ` tags in your models
 # struct_tag: json
@@ -41,8 +41,10 @@ resolver:
 
 # gqlgen will search for any type names in the schema in these go packages
 # if they match it will use them, otherwise it will generate them.
+
 autobind:
-#  - "github.com/TheOguzhan/Drone-Mobile-App-Backend/graph/model"
+    - github.com/TheOguzhan/Drone-Mobile-App-Backend/ent
+    - github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/user
 
 # This section declares type mapping between the GraphQL and go type systems
 #
@@ -52,12 +54,13 @@ autobind:
 models:
   ID:
     model:
-      - github.com/99designs/gqlgen/graphql.ID
-      - github.com/99designs/gqlgen/graphql.Int
-      - github.com/99designs/gqlgen/graphql.Int64
-      - github.com/99designs/gqlgen/graphql.Int32
+      - github.com/TheOguzhan/Drone-Mobile-App-Backend/utils.UUID
   Int:
     model:
       - github.com/99designs/gqlgen/graphql.Int
       - github.com/99designs/gqlgen/graphql.Int64
       - github.com/99designs/gqlgen/graphql.Int32
+  Node:
+    model:
+      - github.com/TheOguzhan/Drone-Mobile-App-Backend/ent.Noder
+  

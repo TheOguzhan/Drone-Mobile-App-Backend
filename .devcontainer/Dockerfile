@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/devcontainers/go:0-1.19-buster
+FROM mcr.microsoft.com/devcontainers/go:0-1.20-buster
 
 # [Optional] Uncomment this section to install additional OS packages.
 # RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
