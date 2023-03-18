@@ -26,8 +26,17 @@ const (
 	FieldPassword = "password"
 	// FieldAuthTokens holds the string denoting the auth_tokens field in the database.
 	FieldAuthTokens = "auth_tokens"
+	// EdgeAddressSlaves holds the string denoting the address_slaves edge name in mutations.
+	EdgeAddressSlaves = "address_slaves"
 	// Table holds the table name of the user in the database.
 	Table = "users"
+	// AddressSlavesTable is the table that holds the address_slaves relation/edge.
+	AddressSlavesTable = "addresses"
+	// AddressSlavesInverseTable is the table name for the Address entity.
+	// It exists in this package in order to avoid circular dependency with the "address" package.
+	AddressSlavesInverseTable = "addresses"
+	// AddressSlavesColumn is the table column denoting the address_slaves relation/edge.
+	AddressSlavesColumn = "user_address_slaves"
 )
 
 // Columns holds all SQL columns for user fields.

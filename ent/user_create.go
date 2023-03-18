@@ -9,6 +9,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/address"
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/user"
 	"github.com/google/uuid"
 )
@@ -82,6 +83,21 @@ func (uc *UserCreate) SetNillableID(u *uuid.UUID) *UserCreate {
 		uc.SetID(*u)
 	}
 	return uc
+}
+
+// AddAddressSlafeIDs adds the "address_slaves" edge to the Address entity by IDs.
+func (uc *UserCreate) AddAddressSlafeIDs(ids ...uuid.UUID) *UserCreate {
+	uc.mutation.AddAddressSlafeIDs(ids...)
+	return uc
+}
+
+// AddAddressSlaves adds the "address_slaves" edges to the Address entity.
+func (uc *UserCreate) AddAddressSlaves(a ...*Address) *UserCreate {
+	ids := make([]uuid.UUID, len(a))
+	for i := range a {
+		ids[i] = a[i].ID
+	}
+	return uc.AddAddressSlafeIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -222,6 +238,25 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 	if value, ok := uc.mutation.AuthTokens(); ok {
 		_spec.SetField(user.FieldAuthTokens, field.TypeJSON, value)
 		_node.AuthTokens = value
+	}
+	if nodes := uc.mutation.AddressSlavesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.AddressSlavesTable,
+			Columns: []string{user.AddressSlavesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUUID,
+					Column: address.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

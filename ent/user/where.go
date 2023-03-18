@@ -4,6 +4,7 @@ package user
 
 import (
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/predicate"
 	"github.com/google/uuid"
 )
@@ -426,6 +427,33 @@ func AuthTokensIsNil() predicate.User {
 // AuthTokensNotNil applies the NotNil predicate on the "auth_tokens" field.
 func AuthTokensNotNil() predicate.User {
 	return predicate.User(sql.FieldNotNull(FieldAuthTokens))
+}
+
+// HasAddressSlaves applies the HasEdge predicate on the "address_slaves" edge.
+func HasAddressSlaves() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, AddressSlavesTable, AddressSlavesColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasAddressSlavesWith applies the HasEdge predicate on the "address_slaves" edge with a given conditions (other predicates).
+func HasAddressSlavesWith(preds ...predicate.Address) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(AddressSlavesInverseTable, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, AddressSlavesTable, AddressSlavesColumn),
+		)
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // And groups predicates with the AND operator between them.

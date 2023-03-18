@@ -3,6 +3,8 @@
 package runtime
 
 import (
+	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/address"
+	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/product"
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/schema"
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/user"
 	"github.com/google/uuid"
@@ -12,6 +14,22 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	addressFields := schema.Address{}.Fields()
+	_ = addressFields
+	// addressDescID is the schema descriptor for id field.
+	addressDescID := addressFields[0].Descriptor()
+	// address.DefaultID holds the default value on creation for the id field.
+	address.DefaultID = addressDescID.Default.(func() uuid.UUID)
+	productFields := schema.Product{}.Fields()
+	_ = productFields
+	// productDescPrice is the schema descriptor for price field.
+	productDescPrice := productFields[1].Descriptor()
+	// product.PriceValidator is a validator for the "price" field. It is called by the builders before save.
+	product.PriceValidator = productDescPrice.Validators[0].(func(int) error)
+	// productDescID is the schema descriptor for id field.
+	productDescID := productFields[0].Descriptor()
+	// product.DefaultID holds the default value on creation for the id field.
+	product.DefaultID = productDescID.Default.(func() uuid.UUID)
 	userHooks := schema.User{}.Hooks()
 	user.Hooks[0] = userHooks[0]
 	userFields := schema.User{}.Fields()

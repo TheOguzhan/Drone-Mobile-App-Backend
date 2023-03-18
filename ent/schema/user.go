@@ -8,6 +8,7 @@ import (
 	"entgo.io/contrib/entgql"
 	"entgo.io/ent"
 	"entgo.io/ent/schema"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/hook"
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/utils"
@@ -29,7 +30,7 @@ func (User) Fields() []ent.Field {
 		field.String("first_name"),
 		field.String("last_name"),
 		field.Bool("is_user_confirmed").Default(false).Annotations(entgql.Skip(entgql.SkipMutationCreateInput)),
-		field.String("password").Annotations(entgql.Skip(entgql.SkipType)),
+		field.String("password").Annotations(entgql.Skip(entgql.SkipType)).Sensitive(),
 		field.Strings("auth_tokens").Optional().Annotations(entgql.Skip(entgql.SkipAll)),
 	}
 }
@@ -51,7 +52,9 @@ func (User) Hooks() []ent.Hook {
 
 // Edges of the Users.
 func (User) Edges() []ent.Edge {
-	return nil
+	return []ent.Edge{
+		edge.To("address_slaves", Address.Type),
+	}
 }
 
 func (User) Annotations() []schema.Annotation {

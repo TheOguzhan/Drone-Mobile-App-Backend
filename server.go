@@ -12,7 +12,9 @@ import (
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent"
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/graph"
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/middleware"
+	"github.com/TheOguzhan/Drone-Mobile-App-Backend/routes"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/joho/godotenv"
 	"github.com/valyala/fasthttp/fasthttpadaptor"
 
@@ -55,7 +57,12 @@ func main() {
 
 	app := fiber.New()
 
+	app.Use(logger.New())
+
 	app.Use(middleware.FiberContextFromMiddleware())
+
+	app.Use(middleware.NewJWT())
+
 	gqlHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		srv.ServeHTTP(w, r)
 	})
@@ -71,6 +78,10 @@ func main() {
 		fasthttpadaptor.NewFastHTTPHandler(playground_n)(c.Context())
 		return nil
 	})
+
+	app.Post("/file-upload", routes.HandleFileUploads)
+
+	app.Static("/static-files", "./static-files")
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
 

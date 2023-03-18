@@ -6,7 +6,6 @@ require (
 	entgo.io/ent v0.11.9
 	github.com/99designs/gqlgen v0.17.24
 	github.com/gofiber/fiber/v2 v2.42.0
-	github.com/golang-jwt/jwt/v5 v5.0.0-rc.1
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/joho/godotenv v1.5.1

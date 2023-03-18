@@ -2,13 +2,66 @@
 
 package ent
 
+import (
+	"github.com/google/uuid"
+)
+
+// CreateAddressInput represents a mutation input for creating addresses.
+type CreateAddressInput struct {
+	Name        string
+	AddressLine string
+	Latitude    float64
+	Longtitude  float64
+}
+
+// Mutate applies the CreateAddressInput on the AddressMutation builder.
+func (i *CreateAddressInput) Mutate(m *AddressMutation) {
+	m.SetName(i.Name)
+	m.SetAddressLine(i.AddressLine)
+	m.SetLatitude(i.Latitude)
+	m.SetLongtitude(i.Longtitude)
+}
+
+// SetInput applies the change-set in the CreateAddressInput on the AddressCreate builder.
+func (c *AddressCreate) SetInput(i CreateAddressInput) *AddressCreate {
+	i.Mutate(c.Mutation())
+	return c
+}
+
+// CreateProductInput represents a mutation input for creating products.
+type CreateProductInput struct {
+	Price       int
+	Title       string
+	Description string
+	Name        string
+	Fotos       []string
+}
+
+// Mutate applies the CreateProductInput on the ProductMutation builder.
+func (i *CreateProductInput) Mutate(m *ProductMutation) {
+	m.SetPrice(i.Price)
+	m.SetTitle(i.Title)
+	m.SetDescription(i.Description)
+	m.SetName(i.Name)
+	if v := i.Fotos; v != nil {
+		m.SetFotos(v)
+	}
+}
+
+// SetInput applies the change-set in the CreateProductInput on the ProductCreate builder.
+func (c *ProductCreate) SetInput(i CreateProductInput) *ProductCreate {
+	i.Mutate(c.Mutation())
+	return c
+}
+
 // CreateUserInput represents a mutation input for creating users.
 type CreateUserInput struct {
-	Username  string
-	Email     string
-	FirstName string
-	LastName  string
-	Password  string
+	Username        string
+	Email           string
+	FirstName       string
+	LastName        string
+	Password        string
+	AddressSlafeIDs []uuid.UUID
 }
 
 // Mutate applies the CreateUserInput on the UserMutation builder.
@@ -18,6 +71,9 @@ func (i *CreateUserInput) Mutate(m *UserMutation) {
 	m.SetFirstName(i.FirstName)
 	m.SetLastName(i.LastName)
 	m.SetPassword(i.Password)
+	if v := i.AddressSlafeIDs; len(v) > 0 {
+		m.AddAddressSlafeIDs(v...)
+	}
 }
 
 // SetInput applies the change-set in the CreateUserInput on the UserCreate builder.

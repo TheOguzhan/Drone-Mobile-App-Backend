@@ -23,6 +23,16 @@ func (r *queryResolver) Nodes(ctx context.Context, ids []uuid.UUID) ([]ent.Noder
 	return r.client.Noders(ctx, ids, ent.WithFixedNodeType(user.Table))
 }
 
+// Addresses is the resolver for the addresses field.
+func (r *queryResolver) Addresses(ctx context.Context) ([]*ent.Address, error) {
+	return r.client.Address.Query().All(ctx)
+}
+
+// Products is the resolver for the products field.
+func (r *queryResolver) Products(ctx context.Context) ([]*ent.Product, error) {
+	return r.client.Product.Query().All(ctx)
+}
+
 // Users is the resolver for the users field.
 func (r *queryResolver) Users(ctx context.Context) ([]*ent.User, error) {
 	return r.client.User.Query().All(ctx)

@@ -11,8 +11,10 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
+	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/address"
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/predicate"
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/user"
+	"github.com/google/uuid"
 )
 
 // UserUpdate is the builder for updating User entities.
@@ -90,9 +92,45 @@ func (uu *UserUpdate) ClearAuthTokens() *UserUpdate {
 	return uu
 }
 
+// AddAddressSlafeIDs adds the "address_slaves" edge to the Address entity by IDs.
+func (uu *UserUpdate) AddAddressSlafeIDs(ids ...uuid.UUID) *UserUpdate {
+	uu.mutation.AddAddressSlafeIDs(ids...)
+	return uu
+}
+
+// AddAddressSlaves adds the "address_slaves" edges to the Address entity.
+func (uu *UserUpdate) AddAddressSlaves(a ...*Address) *UserUpdate {
+	ids := make([]uuid.UUID, len(a))
+	for i := range a {
+		ids[i] = a[i].ID
+	}
+	return uu.AddAddressSlafeIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (uu *UserUpdate) Mutation() *UserMutation {
 	return uu.mutation
+}
+
+// ClearAddressSlaves clears all "address_slaves" edges to the Address entity.
+func (uu *UserUpdate) ClearAddressSlaves() *UserUpdate {
+	uu.mutation.ClearAddressSlaves()
+	return uu
+}
+
+// RemoveAddressSlafeIDs removes the "address_slaves" edge to Address entities by IDs.
+func (uu *UserUpdate) RemoveAddressSlafeIDs(ids ...uuid.UUID) *UserUpdate {
+	uu.mutation.RemoveAddressSlafeIDs(ids...)
+	return uu
+}
+
+// RemoveAddressSlaves removes "address_slaves" edges to Address entities.
+func (uu *UserUpdate) RemoveAddressSlaves(a ...*Address) *UserUpdate {
+	ids := make([]uuid.UUID, len(a))
+	for i := range a {
+		ids[i] = a[i].ID
+	}
+	return uu.RemoveAddressSlafeIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -172,6 +210,60 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if uu.mutation.AuthTokensCleared() {
 		_spec.ClearField(user.FieldAuthTokens, field.TypeJSON)
+	}
+	if uu.mutation.AddressSlavesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.AddressSlavesTable,
+			Columns: []string{user.AddressSlavesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUUID,
+					Column: address.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.RemovedAddressSlavesIDs(); len(nodes) > 0 && !uu.mutation.AddressSlavesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.AddressSlavesTable,
+			Columns: []string{user.AddressSlavesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUUID,
+					Column: address.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.AddressSlavesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.AddressSlavesTable,
+			Columns: []string{user.AddressSlavesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUUID,
+					Column: address.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, uu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -255,9 +347,45 @@ func (uuo *UserUpdateOne) ClearAuthTokens() *UserUpdateOne {
 	return uuo
 }
 
+// AddAddressSlafeIDs adds the "address_slaves" edge to the Address entity by IDs.
+func (uuo *UserUpdateOne) AddAddressSlafeIDs(ids ...uuid.UUID) *UserUpdateOne {
+	uuo.mutation.AddAddressSlafeIDs(ids...)
+	return uuo
+}
+
+// AddAddressSlaves adds the "address_slaves" edges to the Address entity.
+func (uuo *UserUpdateOne) AddAddressSlaves(a ...*Address) *UserUpdateOne {
+	ids := make([]uuid.UUID, len(a))
+	for i := range a {
+		ids[i] = a[i].ID
+	}
+	return uuo.AddAddressSlafeIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (uuo *UserUpdateOne) Mutation() *UserMutation {
 	return uuo.mutation
+}
+
+// ClearAddressSlaves clears all "address_slaves" edges to the Address entity.
+func (uuo *UserUpdateOne) ClearAddressSlaves() *UserUpdateOne {
+	uuo.mutation.ClearAddressSlaves()
+	return uuo
+}
+
+// RemoveAddressSlafeIDs removes the "address_slaves" edge to Address entities by IDs.
+func (uuo *UserUpdateOne) RemoveAddressSlafeIDs(ids ...uuid.UUID) *UserUpdateOne {
+	uuo.mutation.RemoveAddressSlafeIDs(ids...)
+	return uuo
+}
+
+// RemoveAddressSlaves removes "address_slaves" edges to Address entities.
+func (uuo *UserUpdateOne) RemoveAddressSlaves(a ...*Address) *UserUpdateOne {
+	ids := make([]uuid.UUID, len(a))
+	for i := range a {
+		ids[i] = a[i].ID
+	}
+	return uuo.RemoveAddressSlafeIDs(ids...)
 }
 
 // Where appends a list predicates to the UserUpdate builder.
@@ -367,6 +495,60 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 	}
 	if uuo.mutation.AuthTokensCleared() {
 		_spec.ClearField(user.FieldAuthTokens, field.TypeJSON)
+	}
+	if uuo.mutation.AddressSlavesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.AddressSlavesTable,
+			Columns: []string{user.AddressSlavesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUUID,
+					Column: address.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.RemovedAddressSlavesIDs(); len(nodes) > 0 && !uuo.mutation.AddressSlavesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.AddressSlavesTable,
+			Columns: []string{user.AddressSlavesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUUID,
+					Column: address.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.AddressSlavesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.AddressSlavesTable,
+			Columns: []string{user.AddressSlavesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUUID,
+					Column: address.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &User{config: uuo.config}
 	_spec.Assign = _node.assignValues

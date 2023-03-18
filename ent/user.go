@@ -28,9 +28,34 @@ type User struct {
 	// IsUserConfirmed holds the value of the "is_user_confirmed" field.
 	IsUserConfirmed bool `json:"is_user_confirmed,omitempty"`
 	// Password holds the value of the "password" field.
-	Password string `json:"password,omitempty"`
+	Password string `json:"-"`
 	// AuthTokens holds the value of the "auth_tokens" field.
 	AuthTokens []string `json:"auth_tokens,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the UserQuery when eager-loading is set.
+	Edges UserEdges `json:"edges"`
+}
+
+// UserEdges holds the relations/edges for other nodes in the graph.
+type UserEdges struct {
+	// AddressSlaves holds the value of the address_slaves edge.
+	AddressSlaves []*Address `json:"address_slaves,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+	// totalCount holds the count of the edges above.
+	totalCount [1]map[string]int
+
+	namedAddressSlaves map[string][]*Address
+}
+
+// AddressSlavesOrErr returns the AddressSlaves value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) AddressSlavesOrErr() ([]*Address, error) {
+	if e.loadedTypes[0] {
+		return e.AddressSlaves, nil
+	}
+	return nil, &NotLoadedError{edge: "address_slaves"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -116,6 +141,11 @@ func (u *User) assignValues(columns []string, values []any) error {
 	return nil
 }
 
+// QueryAddressSlaves queries the "address_slaves" edge of the User entity.
+func (u *User) QueryAddressSlaves() *AddressQuery {
+	return NewUserClient(u.config).QueryAddressSlaves(u)
+}
+
 // Update returns a builder for updating this User.
 // Note that you need to call User.Unwrap() before calling this method if this User
 // was returned from a transaction, and the transaction was committed or rolled back.
@@ -154,13 +184,36 @@ func (u *User) String() string {
 	builder.WriteString("is_user_confirmed=")
 	builder.WriteString(fmt.Sprintf("%v", u.IsUserConfirmed))
 	builder.WriteString(", ")
-	builder.WriteString("password=")
-	builder.WriteString(u.Password)
+	builder.WriteString("password=<sensitive>")
 	builder.WriteString(", ")
 	builder.WriteString("auth_tokens=")
 	builder.WriteString(fmt.Sprintf("%v", u.AuthTokens))
 	builder.WriteByte(')')
 	return builder.String()
+}
+
+// NamedAddressSlaves returns the AddressSlaves named value or an error if the edge was not
+// loaded in eager-loading with this name.
+func (u *User) NamedAddressSlaves(name string) ([]*Address, error) {
+	if u.Edges.namedAddressSlaves == nil {
+		return nil, &NotLoadedError{edge: name}
+	}
+	nodes, ok := u.Edges.namedAddressSlaves[name]
+	if !ok {
+		return nil, &NotLoadedError{edge: name}
+	}
+	return nodes, nil
+}
+
+func (u *User) appendNamedAddressSlaves(name string, edges ...*Address) {
+	if u.Edges.namedAddressSlaves == nil {
+		u.Edges.namedAddressSlaves = make(map[string][]*Address)
+	}
+	if len(edges) == 0 {
+		u.Edges.namedAddressSlaves[name] = []*Address{}
+	} else {
+		u.Edges.namedAddressSlaves[name] = append(u.Edges.namedAddressSlaves[name], edges...)
+	}
 }
 
 // Users is a parsable slice of User.

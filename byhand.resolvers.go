@@ -11,6 +11,7 @@ import (
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent"
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/graph"
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/utils"
+	"github.com/google/uuid"
 )
 
 // Register is the resolver for the register field.
@@ -33,8 +34,35 @@ func (r *mutationResolver) Register(ctx context.Context, input ent.CreateUserInp
 	}
 
 	fc.Response().Header.Add("Authorization", fmt.Sprintf("Bearer %s", token.String()))
-
 	return gen_user, nil
+}
+
+// CreateAddress is the resolver for the createAddress field.
+func (r *mutationResolver) CreateAddress(ctx context.Context, input ent.CreateAddressInput) (*ent.Address, error) {
+	user_id, err := utils.AuthedUserFromContext(ctx)
+
+	if err != nil {
+		return nil, err
+	}
+
+	c_user, err := r.client.User.Get(ctx, uuid.MustParse(user_id))
+
+	if err != nil {
+		return nil, err
+	}
+
+	address, err := r.client.Address.Create().SetInput(input).SetAddressMaster(c_user).Save(ctx)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return address, nil
+}
+
+// RegisterAProduct is the resolver for the registerAProduct field.
+func (r *mutationResolver) RegisterAProduct(ctx context.Context, input ent.CreateProductInput) (*ent.Product, error) {
+	panic(fmt.Errorf("not implemented: RegisterAProduct - registerAProduct"))
 }
 
 // Mutation returns graph.MutationResolver implementation.
