@@ -9,6 +9,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/order"
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/product"
 	"github.com/google/uuid"
 )
@@ -21,8 +22,8 @@ type ProductCreate struct {
 }
 
 // SetPrice sets the "price" field.
-func (pc *ProductCreate) SetPrice(i int) *ProductCreate {
-	pc.mutation.SetPrice(i)
+func (pc *ProductCreate) SetPrice(f float64) *ProductCreate {
+	pc.mutation.SetPrice(f)
 	return pc
 }
 
@@ -62,6 +63,21 @@ func (pc *ProductCreate) SetNillableID(u *uuid.UUID) *ProductCreate {
 		pc.SetID(*u)
 	}
 	return pc
+}
+
+// AddProductOrderIDs adds the "product_order" edge to the Order entity by IDs.
+func (pc *ProductCreate) AddProductOrderIDs(ids ...uuid.UUID) *ProductCreate {
+	pc.mutation.AddProductOrderIDs(ids...)
+	return pc
+}
+
+// AddProductOrder adds the "product_order" edges to the Order entity.
+func (pc *ProductCreate) AddProductOrder(o ...*Order) *ProductCreate {
+	ids := make([]uuid.UUID, len(o))
+	for i := range o {
+		ids[i] = o[i].ID
+	}
+	return pc.AddProductOrderIDs(ids...)
 }
 
 // Mutation returns the ProductMutation object of the builder.
@@ -160,7 +176,7 @@ func (pc *ProductCreate) createSpec() (*Product, *sqlgraph.CreateSpec) {
 		_spec.ID.Value = &id
 	}
 	if value, ok := pc.mutation.Price(); ok {
-		_spec.SetField(product.FieldPrice, field.TypeInt, value)
+		_spec.SetField(product.FieldPrice, field.TypeFloat64, value)
 		_node.Price = value
 	}
 	if value, ok := pc.mutation.Title(); ok {
@@ -178,6 +194,25 @@ func (pc *ProductCreate) createSpec() (*Product, *sqlgraph.CreateSpec) {
 	if value, ok := pc.mutation.Fotos(); ok {
 		_spec.SetField(product.FieldFotos, field.TypeJSON, value)
 		_node.Fotos = value
+	}
+	if nodes := pc.mutation.ProductOrderIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   product.ProductOrderTable,
+			Columns: []string{product.ProductOrderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUUID,
+					Column: order.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

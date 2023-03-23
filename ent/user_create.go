@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/address"
+	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/order"
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/user"
 	"github.com/google/uuid"
 )
@@ -85,19 +86,34 @@ func (uc *UserCreate) SetNillableID(u *uuid.UUID) *UserCreate {
 	return uc
 }
 
-// AddAddressSlafeIDs adds the "address_slaves" edge to the Address entity by IDs.
-func (uc *UserCreate) AddAddressSlafeIDs(ids ...uuid.UUID) *UserCreate {
-	uc.mutation.AddAddressSlafeIDs(ids...)
+// AddUserAddressIDs adds the "user_addresses" edge to the Address entity by IDs.
+func (uc *UserCreate) AddUserAddressIDs(ids ...uuid.UUID) *UserCreate {
+	uc.mutation.AddUserAddressIDs(ids...)
 	return uc
 }
 
-// AddAddressSlaves adds the "address_slaves" edges to the Address entity.
-func (uc *UserCreate) AddAddressSlaves(a ...*Address) *UserCreate {
+// AddUserAddresses adds the "user_addresses" edges to the Address entity.
+func (uc *UserCreate) AddUserAddresses(a ...*Address) *UserCreate {
 	ids := make([]uuid.UUID, len(a))
 	for i := range a {
 		ids[i] = a[i].ID
 	}
-	return uc.AddAddressSlafeIDs(ids...)
+	return uc.AddUserAddressIDs(ids...)
+}
+
+// AddUserOrderIDs adds the "user_orders" edge to the Order entity by IDs.
+func (uc *UserCreate) AddUserOrderIDs(ids ...uuid.UUID) *UserCreate {
+	uc.mutation.AddUserOrderIDs(ids...)
+	return uc
+}
+
+// AddUserOrders adds the "user_orders" edges to the Order entity.
+func (uc *UserCreate) AddUserOrders(o ...*Order) *UserCreate {
+	ids := make([]uuid.UUID, len(o))
+	for i := range o {
+		ids[i] = o[i].ID
+	}
+	return uc.AddUserOrderIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -239,17 +255,36 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 		_spec.SetField(user.FieldAuthTokens, field.TypeJSON, value)
 		_node.AuthTokens = value
 	}
-	if nodes := uc.mutation.AddressSlavesIDs(); len(nodes) > 0 {
+	if nodes := uc.mutation.UserAddressesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   user.AddressSlavesTable,
-			Columns: []string{user.AddressSlavesColumn},
+			Table:   user.UserAddressesTable,
+			Columns: []string{user.UserAddressesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
 					Type:   field.TypeUUID,
 					Column: address.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := uc.mutation.UserOrdersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.UserOrdersTable,
+			Columns: []string{user.UserOrdersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUUID,
+					Column: order.FieldID,
 				},
 			},
 		}

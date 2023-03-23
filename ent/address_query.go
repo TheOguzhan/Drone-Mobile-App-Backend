@@ -4,6 +4,7 @@ package ent
 
 import (
 	"context"
+	"database/sql/driver"
 	"fmt"
 	"math"
 
@@ -11,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/address"
+	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/order"
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/predicate"
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/user"
 	"github.com/google/uuid"
@@ -19,14 +21,15 @@ import (
 // AddressQuery is the builder for querying Address entities.
 type AddressQuery struct {
 	config
-	ctx               *QueryContext
-	order             []OrderFunc
-	inters            []Interceptor
-	predicates        []predicate.Address
-	withAddressMaster *UserQuery
-	withFKs           bool
-	modifiers         []func(*sql.Selector)
-	loadTotal         []func(context.Context, []*Address) error
+	ctx              *QueryContext
+	order            []OrderFunc
+	inters           []Interceptor
+	predicates       []predicate.Address
+	withAddressOwner *UserQuery
+	withAddressOrder *OrderQuery
+	withFKs          bool
+	modifiers        []func(*sql.Selector)
+	loadTotal        []func(context.Context, []*Address) error
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -63,8 +66,8 @@ func (aq *AddressQuery) Order(o ...OrderFunc) *AddressQuery {
 	return aq
 }
 
-// QueryAddressMaster chains the current query on the "address_master" edge.
-func (aq *AddressQuery) QueryAddressMaster() *UserQuery {
+// QueryAddressOwner chains the current query on the "address_owner" edge.
+func (aq *AddressQuery) QueryAddressOwner() *UserQuery {
 	query := (&UserClient{config: aq.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := aq.prepareQuery(ctx); err != nil {
@@ -77,7 +80,29 @@ func (aq *AddressQuery) QueryAddressMaster() *UserQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(address.Table, address.FieldID, selector),
 			sqlgraph.To(user.Table, user.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, address.AddressMasterTable, address.AddressMasterColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, address.AddressOwnerTable, address.AddressOwnerColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(aq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryAddressOrder chains the current query on the "address_order" edge.
+func (aq *AddressQuery) QueryAddressOrder() *OrderQuery {
+	query := (&OrderClient{config: aq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := aq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := aq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(address.Table, address.FieldID, selector),
+			sqlgraph.To(order.Table, order.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, address.AddressOrderTable, address.AddressOrderColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(aq.driver.Dialect(), step)
 		return fromU, nil
@@ -272,26 +297,38 @@ func (aq *AddressQuery) Clone() *AddressQuery {
 		return nil
 	}
 	return &AddressQuery{
-		config:            aq.config,
-		ctx:               aq.ctx.Clone(),
-		order:             append([]OrderFunc{}, aq.order...),
-		inters:            append([]Interceptor{}, aq.inters...),
-		predicates:        append([]predicate.Address{}, aq.predicates...),
-		withAddressMaster: aq.withAddressMaster.Clone(),
+		config:           aq.config,
+		ctx:              aq.ctx.Clone(),
+		order:            append([]OrderFunc{}, aq.order...),
+		inters:           append([]Interceptor{}, aq.inters...),
+		predicates:       append([]predicate.Address{}, aq.predicates...),
+		withAddressOwner: aq.withAddressOwner.Clone(),
+		withAddressOrder: aq.withAddressOrder.Clone(),
 		// clone intermediate query.
 		sql:  aq.sql.Clone(),
 		path: aq.path,
 	}
 }
 
-// WithAddressMaster tells the query-builder to eager-load the nodes that are connected to
-// the "address_master" edge. The optional arguments are used to configure the query builder of the edge.
-func (aq *AddressQuery) WithAddressMaster(opts ...func(*UserQuery)) *AddressQuery {
+// WithAddressOwner tells the query-builder to eager-load the nodes that are connected to
+// the "address_owner" edge. The optional arguments are used to configure the query builder of the edge.
+func (aq *AddressQuery) WithAddressOwner(opts ...func(*UserQuery)) *AddressQuery {
 	query := (&UserClient{config: aq.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	aq.withAddressMaster = query
+	aq.withAddressOwner = query
+	return aq
+}
+
+// WithAddressOrder tells the query-builder to eager-load the nodes that are connected to
+// the "address_order" edge. The optional arguments are used to configure the query builder of the edge.
+func (aq *AddressQuery) WithAddressOrder(opts ...func(*OrderQuery)) *AddressQuery {
+	query := (&OrderClient{config: aq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	aq.withAddressOrder = query
 	return aq
 }
 
@@ -374,11 +411,12 @@ func (aq *AddressQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Addr
 		nodes       = []*Address{}
 		withFKs     = aq.withFKs
 		_spec       = aq.querySpec()
-		loadedTypes = [1]bool{
-			aq.withAddressMaster != nil,
+		loadedTypes = [2]bool{
+			aq.withAddressOwner != nil,
+			aq.withAddressOrder != nil,
 		}
 	)
-	if aq.withAddressMaster != nil {
+	if aq.withAddressOwner != nil {
 		withFKs = true
 	}
 	if withFKs {
@@ -405,9 +443,15 @@ func (aq *AddressQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Addr
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := aq.withAddressMaster; query != nil {
-		if err := aq.loadAddressMaster(ctx, query, nodes, nil,
-			func(n *Address, e *User) { n.Edges.AddressMaster = e }); err != nil {
+	if query := aq.withAddressOwner; query != nil {
+		if err := aq.loadAddressOwner(ctx, query, nodes, nil,
+			func(n *Address, e *User) { n.Edges.AddressOwner = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := aq.withAddressOrder; query != nil {
+		if err := aq.loadAddressOrder(ctx, query, nodes, nil,
+			func(n *Address, e *Order) { n.Edges.AddressOrder = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -419,14 +463,14 @@ func (aq *AddressQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Addr
 	return nodes, nil
 }
 
-func (aq *AddressQuery) loadAddressMaster(ctx context.Context, query *UserQuery, nodes []*Address, init func(*Address), assign func(*Address, *User)) error {
+func (aq *AddressQuery) loadAddressOwner(ctx context.Context, query *UserQuery, nodes []*Address, init func(*Address), assign func(*Address, *User)) error {
 	ids := make([]uuid.UUID, 0, len(nodes))
 	nodeids := make(map[uuid.UUID][]*Address)
 	for i := range nodes {
-		if nodes[i].user_address_slaves == nil {
+		if nodes[i].user_user_addresses == nil {
 			continue
 		}
-		fk := *nodes[i].user_address_slaves
+		fk := *nodes[i].user_user_addresses
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -443,11 +487,39 @@ func (aq *AddressQuery) loadAddressMaster(ctx context.Context, query *UserQuery,
 	for _, n := range neighbors {
 		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "user_address_slaves" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "user_user_addresses" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
 		}
+	}
+	return nil
+}
+func (aq *AddressQuery) loadAddressOrder(ctx context.Context, query *OrderQuery, nodes []*Address, init func(*Address), assign func(*Address, *Order)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*Address)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+	}
+	query.withFKs = true
+	query.Where(predicate.Order(func(s *sql.Selector) {
+		s.Where(sql.InValues(address.AddressOrderColumn, fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.address_address_order
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "address_address_order" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "address_address_order" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
 	}
 	return nil
 }

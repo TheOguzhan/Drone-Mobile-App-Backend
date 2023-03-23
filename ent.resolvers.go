@@ -6,6 +6,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent"
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/user"
@@ -28,6 +29,16 @@ func (r *queryResolver) Addresses(ctx context.Context) ([]*ent.Address, error) {
 	return r.client.Address.Query().All(ctx)
 }
 
+// Drones is the resolver for the drones field.
+func (r *queryResolver) Drones(ctx context.Context) ([]*ent.Drone, error) {
+	return r.client.Drone.Query().All(ctx)
+}
+
+// Orders is the resolver for the orders field.
+func (r *queryResolver) Orders(ctx context.Context) ([]*ent.Order, error) {
+	return r.client.Order.Query().All(ctx)
+}
+
 // Products is the resolver for the products field.
 func (r *queryResolver) Products(ctx context.Context) ([]*ent.Product, error) {
 	return r.client.Product.Query().All(ctx)
@@ -36,6 +47,11 @@ func (r *queryResolver) Products(ctx context.Context) ([]*ent.Product, error) {
 // Users is the resolver for the users field.
 func (r *queryResolver) Users(ctx context.Context) ([]*ent.User, error) {
 	return r.client.User.Query().All(ctx)
+}
+
+// Warehouses is the resolver for the warehouses field.
+func (r *queryResolver) Warehouses(ctx context.Context) ([]*ent.Warehouse, error) {
+	panic(fmt.Errorf("not implemented: Warehouses - warehouses"))
 }
 
 // Query returns graph.QueryResolver implementation.

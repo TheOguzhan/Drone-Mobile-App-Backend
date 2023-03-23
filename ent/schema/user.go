@@ -24,7 +24,7 @@ type User struct {
 func (User) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
-			Default(uuid.New),
+			Default(uuid.New).Unique(),
 		field.String("username").Unique(),
 		field.String("email").Match(regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)).Unique(),
 		field.String("first_name"),
@@ -53,7 +53,8 @@ func (User) Hooks() []ent.Hook {
 // Edges of the Users.
 func (User) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.To("address_slaves", Address.Type),
+		edge.To("user_addresses", Address.Type),
+		edge.To("user_orders", Order.Type),
 	}
 }
 

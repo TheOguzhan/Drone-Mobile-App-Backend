@@ -21,8 +21,17 @@ const (
 	FieldName = "name"
 	// FieldFotos holds the string denoting the fotos field in the database.
 	FieldFotos = "fotos"
+	// EdgeProductOrder holds the string denoting the product_order edge name in mutations.
+	EdgeProductOrder = "product_order"
 	// Table holds the table name of the product in the database.
 	Table = "products"
+	// ProductOrderTable is the table that holds the product_order relation/edge.
+	ProductOrderTable = "orders"
+	// ProductOrderInverseTable is the table name for the Order entity.
+	// It exists in this package in order to avoid circular dependency with the "order" package.
+	ProductOrderInverseTable = "orders"
+	// ProductOrderColumn is the table column denoting the product_order relation/edge.
+	ProductOrderColumn = "product_product_order"
 )
 
 // Columns holds all SQL columns for product fields.
@@ -47,7 +56,7 @@ func ValidColumn(column string) bool {
 
 var (
 	// PriceValidator is a validator for the "price" field. It is called by the builders before save.
-	PriceValidator func(int) error
+	PriceValidator func(float64) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() uuid.UUID
 )

@@ -18,7 +18,7 @@ type Product struct {
 	// ID of the ent.
 	ID uuid.UUID `json:"id,omitempty"`
 	// Price holds the value of the "price" field.
-	Price int `json:"price,omitempty"`
+	Price float64 `json:"price,omitempty"`
 	// Title holds the value of the "title" field.
 	Title string `json:"title,omitempty"`
 	// Description holds the value of the "description" field.
@@ -27,6 +27,31 @@ type Product struct {
 	Name string `json:"Name,omitempty"`
 	// Fotos holds the value of the "Fotos" field.
 	Fotos []string `json:"Fotos,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the ProductQuery when eager-loading is set.
+	Edges ProductEdges `json:"edges"`
+}
+
+// ProductEdges holds the relations/edges for other nodes in the graph.
+type ProductEdges struct {
+	// ProductOrder holds the value of the product_order edge.
+	ProductOrder []*Order `json:"product_order,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+	// totalCount holds the count of the edges above.
+	totalCount [1]map[string]int
+
+	namedProductOrder map[string][]*Order
+}
+
+// ProductOrderOrErr returns the ProductOrder value or an error if the edge
+// was not loaded in eager-loading.
+func (e ProductEdges) ProductOrderOrErr() ([]*Order, error) {
+	if e.loadedTypes[0] {
+		return e.ProductOrder, nil
+	}
+	return nil, &NotLoadedError{edge: "product_order"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -37,7 +62,7 @@ func (*Product) scanValues(columns []string) ([]any, error) {
 		case product.FieldFotos:
 			values[i] = new([]byte)
 		case product.FieldPrice:
-			values[i] = new(sql.NullInt64)
+			values[i] = new(sql.NullFloat64)
 		case product.FieldTitle, product.FieldDescription, product.FieldName:
 			values[i] = new(sql.NullString)
 		case product.FieldID:
@@ -64,10 +89,10 @@ func (pr *Product) assignValues(columns []string, values []any) error {
 				pr.ID = *value
 			}
 		case product.FieldPrice:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
+			if value, ok := values[i].(*sql.NullFloat64); !ok {
 				return fmt.Errorf("unexpected type %T for field price", values[i])
 			} else if value.Valid {
-				pr.Price = int(value.Int64)
+				pr.Price = value.Float64
 			}
 		case product.FieldTitle:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -98,6 +123,11 @@ func (pr *Product) assignValues(columns []string, values []any) error {
 		}
 	}
 	return nil
+}
+
+// QueryProductOrder queries the "product_order" edge of the Product entity.
+func (pr *Product) QueryProductOrder() *OrderQuery {
+	return NewProductClient(pr.config).QueryProductOrder(pr)
 }
 
 // Update returns a builder for updating this Product.
@@ -139,6 +169,30 @@ func (pr *Product) String() string {
 	builder.WriteString(fmt.Sprintf("%v", pr.Fotos))
 	builder.WriteByte(')')
 	return builder.String()
+}
+
+// NamedProductOrder returns the ProductOrder named value or an error if the edge was not
+// loaded in eager-loading with this name.
+func (pr *Product) NamedProductOrder(name string) ([]*Order, error) {
+	if pr.Edges.namedProductOrder == nil {
+		return nil, &NotLoadedError{edge: name}
+	}
+	nodes, ok := pr.Edges.namedProductOrder[name]
+	if !ok {
+		return nil, &NotLoadedError{edge: name}
+	}
+	return nodes, nil
+}
+
+func (pr *Product) appendNamedProductOrder(name string, edges ...*Order) {
+	if pr.Edges.namedProductOrder == nil {
+		pr.Edges.namedProductOrder = make(map[string][]*Order)
+	}
+	if len(edges) == 0 {
+		pr.Edges.namedProductOrder[name] = []*Order{}
+	} else {
+		pr.Edges.namedProductOrder[name] = append(pr.Edges.namedProductOrder[name], edges...)
+	}
 }
 
 // Products is a parsable slice of Product.

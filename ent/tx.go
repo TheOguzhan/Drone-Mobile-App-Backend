@@ -14,10 +14,16 @@ type Tx struct {
 	config
 	// Address is the client for interacting with the Address builders.
 	Address *AddressClient
+	// Drone is the client for interacting with the Drone builders.
+	Drone *DroneClient
+	// Order is the client for interacting with the Order builders.
+	Order *OrderClient
 	// Product is the client for interacting with the Product builders.
 	Product *ProductClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
+	// Warehouse is the client for interacting with the Warehouse builders.
+	Warehouse *WarehouseClient
 
 	// lazily loaded.
 	client     *Client
@@ -150,8 +156,11 @@ func (tx *Tx) Client() *Client {
 
 func (tx *Tx) init() {
 	tx.Address = NewAddressClient(tx.config)
+	tx.Drone = NewDroneClient(tx.config)
+	tx.Order = NewOrderClient(tx.config)
 	tx.Product = NewProductClient(tx.config)
 	tx.User = NewUserClient(tx.config)
+	tx.Warehouse = NewWarehouseClient(tx.config)
 }
 
 // txDriver wraps the given dialect.Tx with a nop dialect.Driver implementation.

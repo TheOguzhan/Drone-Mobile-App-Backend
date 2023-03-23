@@ -2,19 +2,11 @@ package middleware
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/utils"
 	"github.com/gofiber/fiber/v2"
 )
-
-func HandlePanic() {
-	if r := recover(); r != nil {
-		fmt.Println("Recovered from panic:", r)
-		// Handle the panic here, e.g. log the error or return a specific error message to the caller.
-	}
-}
 
 func NewJWT() fiber.Handler {
 	return func(c *fiber.Ctx) error {

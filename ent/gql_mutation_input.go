@@ -8,10 +8,12 @@ import (
 
 // CreateAddressInput represents a mutation input for creating addresses.
 type CreateAddressInput struct {
-	Name        string
-	AddressLine string
-	Latitude    float64
-	Longtitude  float64
+	Name           string
+	AddressLine    string
+	Latitude       float64
+	Longtitude     float64
+	Description    string
+	AddressOrderID *uuid.UUID
 }
 
 // Mutate applies the CreateAddressInput on the AddressMutation builder.
@@ -20,6 +22,10 @@ func (i *CreateAddressInput) Mutate(m *AddressMutation) {
 	m.SetAddressLine(i.AddressLine)
 	m.SetLatitude(i.Latitude)
 	m.SetLongtitude(i.Longtitude)
+	m.SetDescription(i.Description)
+	if v := i.AddressOrderID; v != nil {
+		m.SetAddressOrderID(*v)
+	}
 }
 
 // SetInput applies the change-set in the CreateAddressInput on the AddressCreate builder.
@@ -28,13 +34,66 @@ func (c *AddressCreate) SetInput(i CreateAddressInput) *AddressCreate {
 	return c
 }
 
+// CreateDroneInput represents a mutation input for creating drones.
+type CreateDroneInput struct {
+	Latitude       *float64
+	Longtitude     *float64
+	InWarehouse    *bool
+	PlateNumber    string
+	CurrentOrderID *uuid.UUID
+}
+
+// Mutate applies the CreateDroneInput on the DroneMutation builder.
+func (i *CreateDroneInput) Mutate(m *DroneMutation) {
+	if v := i.Latitude; v != nil {
+		m.SetLatitude(*v)
+	}
+	if v := i.Longtitude; v != nil {
+		m.SetLongtitude(*v)
+	}
+	if v := i.InWarehouse; v != nil {
+		m.SetInWarehouse(*v)
+	}
+	m.SetPlateNumber(i.PlateNumber)
+	if v := i.CurrentOrderID; v != nil {
+		m.SetCurrentOrderID(*v)
+	}
+}
+
+// SetInput applies the change-set in the CreateDroneInput on the DroneCreate builder.
+func (c *DroneCreate) SetInput(i CreateDroneInput) *DroneCreate {
+	i.Mutate(c.Mutation())
+	return c
+}
+
+// CreateOrderInput represents a mutation input for creating orders.
+type CreateOrderInput struct {
+	OrderWarehouseID uuid.UUID
+	OrderAddressID   uuid.UUID
+	OrderProductID   uuid.UUID
+}
+
+// Mutate applies the CreateOrderInput on the OrderMutation builder.
+func (i *CreateOrderInput) Mutate(m *OrderMutation) {
+	m.SetOrderWarehouseID(i.OrderWarehouseID)
+	m.SetOrderAddressID(i.OrderAddressID)
+	m.SetOrderProductID(i.OrderProductID)
+}
+
+// SetInput applies the change-set in the CreateOrderInput on the OrderCreate builder.
+func (c *OrderCreate) SetInput(i CreateOrderInput) *OrderCreate {
+	i.Mutate(c.Mutation())
+	return c
+}
+
 // CreateProductInput represents a mutation input for creating products.
 type CreateProductInput struct {
-	Price       int
-	Title       string
-	Description string
-	Name        string
-	Fotos       []string
+	Price           float64
+	Title           string
+	Description     string
+	Name            string
+	Fotos           []string
+	ProductOrderIDs []uuid.UUID
 }
 
 // Mutate applies the CreateProductInput on the ProductMutation builder.
@@ -46,6 +105,9 @@ func (i *CreateProductInput) Mutate(m *ProductMutation) {
 	if v := i.Fotos; v != nil {
 		m.SetFotos(v)
 	}
+	if v := i.ProductOrderIDs; len(v) > 0 {
+		m.AddProductOrderIDs(v...)
+	}
 }
 
 // SetInput applies the change-set in the CreateProductInput on the ProductCreate builder.
@@ -56,12 +118,13 @@ func (c *ProductCreate) SetInput(i CreateProductInput) *ProductCreate {
 
 // CreateUserInput represents a mutation input for creating users.
 type CreateUserInput struct {
-	Username        string
-	Email           string
-	FirstName       string
-	LastName        string
-	Password        string
-	AddressSlafeIDs []uuid.UUID
+	Username       string
+	Email          string
+	FirstName      string
+	LastName       string
+	Password       string
+	UserAddressIDs []uuid.UUID
+	UserOrderIDs   []uuid.UUID
 }
 
 // Mutate applies the CreateUserInput on the UserMutation builder.
@@ -71,13 +134,44 @@ func (i *CreateUserInput) Mutate(m *UserMutation) {
 	m.SetFirstName(i.FirstName)
 	m.SetLastName(i.LastName)
 	m.SetPassword(i.Password)
-	if v := i.AddressSlafeIDs; len(v) > 0 {
-		m.AddAddressSlafeIDs(v...)
+	if v := i.UserAddressIDs; len(v) > 0 {
+		m.AddUserAddressIDs(v...)
+	}
+	if v := i.UserOrderIDs; len(v) > 0 {
+		m.AddUserOrderIDs(v...)
 	}
 }
 
 // SetInput applies the change-set in the CreateUserInput on the UserCreate builder.
 func (c *UserCreate) SetInput(i CreateUserInput) *UserCreate {
+	i.Mutate(c.Mutation())
+	return c
+}
+
+// CreateWarehouseInput represents a mutation input for creating warehouses.
+type CreateWarehouseInput struct {
+	Name             string
+	Description      string
+	AddressLine      string
+	Latitude         float64
+	Longtitude       float64
+	WarehouseOrderID *uuid.UUID
+}
+
+// Mutate applies the CreateWarehouseInput on the WarehouseMutation builder.
+func (i *CreateWarehouseInput) Mutate(m *WarehouseMutation) {
+	m.SetName(i.Name)
+	m.SetDescription(i.Description)
+	m.SetAddressLine(i.AddressLine)
+	m.SetLatitude(i.Latitude)
+	m.SetLongtitude(i.Longtitude)
+	if v := i.WarehouseOrderID; v != nil {
+		m.SetWarehouseOrderID(*v)
+	}
+}
+
+// SetInput applies the change-set in the CreateWarehouseInput on the WarehouseCreate builder.
+func (c *WarehouseCreate) SetInput(i CreateWarehouseInput) *WarehouseCreate {
 	i.Mutate(c.Mutation())
 	return c
 }

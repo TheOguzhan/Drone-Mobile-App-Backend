@@ -2,6 +2,7 @@ package utils
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"time"
 
@@ -33,6 +34,10 @@ func VerifyToken(token string) (bool, *userClaims, error) {
 		return false, nil, errClaims
 	}
 
+	if newClaims.ExpiresAt.Unix() < time.Now().Unix() {
+		return false, nil, fmt.Errorf("token is expired")
+	}
+
 	return true, &newClaims, nil
 
 }
@@ -52,8 +57,8 @@ func CreateJWTToken(user_id string) (*jwt.Token, error) {
 		RegisteredClaims: jwt.RegisteredClaims{
 			ID:        id.String(),
 			Audience:  []string{"user"},
-			Issuer:    "app-idea",
-			Subject:   "",
+			Issuer:    "drone-backend",
+			Subject:   "drone-backend",
 			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(time.Hour * 24)},
 			IssuedAt:  &jwt.NumericDate{Time: time.Now()},
 		},

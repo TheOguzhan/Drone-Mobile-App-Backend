@@ -9,7 +9,10 @@ import (
 	"fmt"
 
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent"
+	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/drone"
+	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/user"
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/graph"
+	"github.com/TheOguzhan/Drone-Mobile-App-Backend/graph/model"
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/utils"
 	"github.com/google/uuid"
 )
@@ -51,7 +54,7 @@ func (r *mutationResolver) CreateAddress(ctx context.Context, input ent.CreateAd
 		return nil, err
 	}
 
-	address, err := r.client.Address.Create().SetInput(input).SetAddressMaster(c_user).Save(ctx)
+	address, err := r.client.Address.Create().SetInput(input).SetAddressOwner(c_user).Save(ctx)
 
 	if err != nil {
 		return nil, err
@@ -62,7 +65,63 @@ func (r *mutationResolver) CreateAddress(ctx context.Context, input ent.CreateAd
 
 // RegisterAProduct is the resolver for the registerAProduct field.
 func (r *mutationResolver) RegisterAProduct(ctx context.Context, input ent.CreateProductInput) (*ent.Product, error) {
-	panic(fmt.Errorf("not implemented: RegisterAProduct - registerAProduct"))
+	return r.client.Product.Create().SetInput(input).Save(ctx)
+}
+
+// Login is the resolver for the login field.
+func (r *mutationResolver) Login(ctx context.Context, input model.LoginInput) (*ent.User, error) {
+	fc, err := utils.FiberContextFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	user, err := r.client.User.Query().Where(user.EmailEQ(input.Email)).Where(user.PasswordEQ(utils.HashToString(input.Password))).First(ctx)
+
+	if err != nil {
+		return nil, err
+	}
+	token, err := utils.CreateJWTToken(user.ID.String())
+
+	if err != nil {
+		return nil, err
+	}
+
+	fc.Response().Header.Add("Authorization", fmt.Sprintf("Bearer %s", token.String()))
+
+	return user, nil
+}
+
+// RegisterAWarehouse is the resolver for the registerAWarehouse field.
+func (r *mutationResolver) RegisterAWarehouse(ctx context.Context, input *ent.CreateWarehouseInput) (*ent.Warehouse, error) {
+	return r.client.Warehouse.Create().SetInput(*input).Save(ctx)
+}
+
+// RegisterADrone is the resolver for the registerADrone field.
+func (r *mutationResolver) RegisterADrone(ctx context.Context, input *ent.CreateDroneInput) (*ent.Drone, error) {
+	return r.client.Drone.Create().SetInput(*input).Save(ctx)
+}
+
+// CreateAnOrder is the resolver for the createAnOrder field.
+func (r *mutationResolver) CreateAnOrder(ctx context.Context, input ent.CreateOrderInput) (*ent.Order, error) {
+	user_id, err := utils.AuthedUserFromContext(ctx)
+
+	if err != nil {
+		return nil, err
+	}
+
+	c_user, err := r.client.User.Get(ctx, uuid.MustParse(user_id))
+
+	if err != nil {
+		return nil, err
+	}
+
+	drone, err := r.client.Drone.Query().Where(drone.Not(drone.HasCurrentOrder())).First(ctx)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return r.client.Order.Create().SetInput(input).SetUserOrder(c_user).SetCarrierDrone(drone).Save(ctx)
 }
 
 // Mutation returns graph.MutationResolver implementation.

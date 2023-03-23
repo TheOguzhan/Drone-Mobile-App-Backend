@@ -63,4 +63,7 @@ models:
   Node:
     model:
       - github.com/TheOguzhan/Drone-Mobile-App-Backend/ent.Noder
+  Location:
+    model:
+      - github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/schema/structs.Location
   

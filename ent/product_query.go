@@ -4,12 +4,14 @@ package ent
 
 import (
 	"context"
+	"database/sql/driver"
 	"fmt"
 	"math"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/order"
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/predicate"
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/product"
 	"github.com/google/uuid"
@@ -18,12 +20,14 @@ import (
 // ProductQuery is the builder for querying Product entities.
 type ProductQuery struct {
 	config
-	ctx        *QueryContext
-	order      []OrderFunc
-	inters     []Interceptor
-	predicates []predicate.Product
-	modifiers  []func(*sql.Selector)
-	loadTotal  []func(context.Context, []*Product) error
+	ctx                   *QueryContext
+	order                 []OrderFunc
+	inters                []Interceptor
+	predicates            []predicate.Product
+	withProductOrder      *OrderQuery
+	modifiers             []func(*sql.Selector)
+	loadTotal             []func(context.Context, []*Product) error
+	withNamedProductOrder map[string]*OrderQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -58,6 +62,28 @@ func (pq *ProductQuery) Unique(unique bool) *ProductQuery {
 func (pq *ProductQuery) Order(o ...OrderFunc) *ProductQuery {
 	pq.order = append(pq.order, o...)
 	return pq
+}
+
+// QueryProductOrder chains the current query on the "product_order" edge.
+func (pq *ProductQuery) QueryProductOrder() *OrderQuery {
+	query := (&OrderClient{config: pq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := pq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := pq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(product.Table, product.FieldID, selector),
+			sqlgraph.To(order.Table, order.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, product.ProductOrderTable, product.ProductOrderColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // First returns the first Product entity from the query.
@@ -247,15 +273,27 @@ func (pq *ProductQuery) Clone() *ProductQuery {
 		return nil
 	}
 	return &ProductQuery{
-		config:     pq.config,
-		ctx:        pq.ctx.Clone(),
-		order:      append([]OrderFunc{}, pq.order...),
-		inters:     append([]Interceptor{}, pq.inters...),
-		predicates: append([]predicate.Product{}, pq.predicates...),
+		config:           pq.config,
+		ctx:              pq.ctx.Clone(),
+		order:            append([]OrderFunc{}, pq.order...),
+		inters:           append([]Interceptor{}, pq.inters...),
+		predicates:       append([]predicate.Product{}, pq.predicates...),
+		withProductOrder: pq.withProductOrder.Clone(),
 		// clone intermediate query.
 		sql:  pq.sql.Clone(),
 		path: pq.path,
 	}
+}
+
+// WithProductOrder tells the query-builder to eager-load the nodes that are connected to
+// the "product_order" edge. The optional arguments are used to configure the query builder of the edge.
+func (pq *ProductQuery) WithProductOrder(opts ...func(*OrderQuery)) *ProductQuery {
+	query := (&OrderClient{config: pq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	pq.withProductOrder = query
+	return pq
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -264,7 +302,7 @@ func (pq *ProductQuery) Clone() *ProductQuery {
 // Example:
 //
 //	var v []struct {
-//		Price int `json:"price,omitempty"`
+//		Price float64 `json:"price,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
@@ -287,7 +325,7 @@ func (pq *ProductQuery) GroupBy(field string, fields ...string) *ProductGroupBy 
 // Example:
 //
 //	var v []struct {
-//		Price int `json:"price,omitempty"`
+//		Price float64 `json:"price,omitempty"`
 //	}
 //
 //	client.Product.Query().
@@ -334,8 +372,11 @@ func (pq *ProductQuery) prepareQuery(ctx context.Context) error {
 
 func (pq *ProductQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Product, error) {
 	var (
-		nodes = []*Product{}
-		_spec = pq.querySpec()
+		nodes       = []*Product{}
+		_spec       = pq.querySpec()
+		loadedTypes = [1]bool{
+			pq.withProductOrder != nil,
+		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Product).scanValues(nil, columns)
@@ -343,6 +384,7 @@ func (pq *ProductQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Prod
 	_spec.Assign = func(columns []string, values []any) error {
 		node := &Product{config: pq.config}
 		nodes = append(nodes, node)
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	if len(pq.modifiers) > 0 {
@@ -357,12 +399,58 @@ func (pq *ProductQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Prod
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := pq.withProductOrder; query != nil {
+		if err := pq.loadProductOrder(ctx, query, nodes,
+			func(n *Product) { n.Edges.ProductOrder = []*Order{} },
+			func(n *Product, e *Order) { n.Edges.ProductOrder = append(n.Edges.ProductOrder, e) }); err != nil {
+			return nil, err
+		}
+	}
+	for name, query := range pq.withNamedProductOrder {
+		if err := pq.loadProductOrder(ctx, query, nodes,
+			func(n *Product) { n.appendNamedProductOrder(name) },
+			func(n *Product, e *Order) { n.appendNamedProductOrder(name, e) }); err != nil {
+			return nil, err
+		}
+	}
 	for i := range pq.loadTotal {
 		if err := pq.loadTotal[i](ctx, nodes); err != nil {
 			return nil, err
 		}
 	}
 	return nodes, nil
+}
+
+func (pq *ProductQuery) loadProductOrder(ctx context.Context, query *OrderQuery, nodes []*Product, init func(*Product), assign func(*Product, *Order)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*Product)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.Order(func(s *sql.Selector) {
+		s.Where(sql.InValues(product.ProductOrderColumn, fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.product_product_order
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "product_product_order" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "product_product_order" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
 }
 
 func (pq *ProductQuery) sqlCount(ctx context.Context) (int, error) {
@@ -447,6 +535,20 @@ func (pq *ProductQuery) sqlQuery(ctx context.Context) *sql.Selector {
 		selector.Limit(*limit)
 	}
 	return selector
+}
+
+// WithNamedProductOrder tells the query-builder to eager-load the nodes that are connected to the "product_order"
+// edge with the given name. The optional arguments are used to configure the query builder of the edge.
+func (pq *ProductQuery) WithNamedProductOrder(name string, opts ...func(*OrderQuery)) *ProductQuery {
+	query := (&OrderClient{config: pq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	if pq.withNamedProductOrder == nil {
+		pq.withNamedProductOrder = make(map[string]*OrderQuery)
+	}
+	pq.withNamedProductOrder[name] = query
+	return pq
 }
 
 // ProductGroupBy is the group-by builder for Product entities.

@@ -74,6 +74,11 @@ func Longtitude(v float64) predicate.Address {
 	return predicate.Address(sql.FieldEQ(FieldLongtitude, v))
 }
 
+// Description applies equality check predicate on the "description" field. It's identical to DescriptionEQ.
+func Description(v string) predicate.Address {
+	return predicate.Address(sql.FieldEQ(FieldDescription, v))
+}
+
 // NameEQ applies the EQ predicate on the "name" field.
 func NameEQ(v string) predicate.Address {
 	return predicate.Address(sql.FieldEQ(FieldName, v))
@@ -284,24 +289,116 @@ func LongtitudeLTE(v float64) predicate.Address {
 	return predicate.Address(sql.FieldLTE(FieldLongtitude, v))
 }
 
-// HasAddressMaster applies the HasEdge predicate on the "address_master" edge.
-func HasAddressMaster() predicate.Address {
+// DescriptionEQ applies the EQ predicate on the "description" field.
+func DescriptionEQ(v string) predicate.Address {
+	return predicate.Address(sql.FieldEQ(FieldDescription, v))
+}
+
+// DescriptionNEQ applies the NEQ predicate on the "description" field.
+func DescriptionNEQ(v string) predicate.Address {
+	return predicate.Address(sql.FieldNEQ(FieldDescription, v))
+}
+
+// DescriptionIn applies the In predicate on the "description" field.
+func DescriptionIn(vs ...string) predicate.Address {
+	return predicate.Address(sql.FieldIn(FieldDescription, vs...))
+}
+
+// DescriptionNotIn applies the NotIn predicate on the "description" field.
+func DescriptionNotIn(vs ...string) predicate.Address {
+	return predicate.Address(sql.FieldNotIn(FieldDescription, vs...))
+}
+
+// DescriptionGT applies the GT predicate on the "description" field.
+func DescriptionGT(v string) predicate.Address {
+	return predicate.Address(sql.FieldGT(FieldDescription, v))
+}
+
+// DescriptionGTE applies the GTE predicate on the "description" field.
+func DescriptionGTE(v string) predicate.Address {
+	return predicate.Address(sql.FieldGTE(FieldDescription, v))
+}
+
+// DescriptionLT applies the LT predicate on the "description" field.
+func DescriptionLT(v string) predicate.Address {
+	return predicate.Address(sql.FieldLT(FieldDescription, v))
+}
+
+// DescriptionLTE applies the LTE predicate on the "description" field.
+func DescriptionLTE(v string) predicate.Address {
+	return predicate.Address(sql.FieldLTE(FieldDescription, v))
+}
+
+// DescriptionContains applies the Contains predicate on the "description" field.
+func DescriptionContains(v string) predicate.Address {
+	return predicate.Address(sql.FieldContains(FieldDescription, v))
+}
+
+// DescriptionHasPrefix applies the HasPrefix predicate on the "description" field.
+func DescriptionHasPrefix(v string) predicate.Address {
+	return predicate.Address(sql.FieldHasPrefix(FieldDescription, v))
+}
+
+// DescriptionHasSuffix applies the HasSuffix predicate on the "description" field.
+func DescriptionHasSuffix(v string) predicate.Address {
+	return predicate.Address(sql.FieldHasSuffix(FieldDescription, v))
+}
+
+// DescriptionEqualFold applies the EqualFold predicate on the "description" field.
+func DescriptionEqualFold(v string) predicate.Address {
+	return predicate.Address(sql.FieldEqualFold(FieldDescription, v))
+}
+
+// DescriptionContainsFold applies the ContainsFold predicate on the "description" field.
+func DescriptionContainsFold(v string) predicate.Address {
+	return predicate.Address(sql.FieldContainsFold(FieldDescription, v))
+}
+
+// HasAddressOwner applies the HasEdge predicate on the "address_owner" edge.
+func HasAddressOwner() predicate.Address {
 	return predicate.Address(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, AddressMasterTable, AddressMasterColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, AddressOwnerTable, AddressOwnerColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasAddressMasterWith applies the HasEdge predicate on the "address_master" edge with a given conditions (other predicates).
-func HasAddressMasterWith(preds ...predicate.User) predicate.Address {
+// HasAddressOwnerWith applies the HasEdge predicate on the "address_owner" edge with a given conditions (other predicates).
+func HasAddressOwnerWith(preds ...predicate.User) predicate.Address {
 	return predicate.Address(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.To(AddressMasterInverseTable, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, AddressMasterTable, AddressMasterColumn),
+			sqlgraph.To(AddressOwnerInverseTable, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, AddressOwnerTable, AddressOwnerColumn),
+		)
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasAddressOrder applies the HasEdge predicate on the "address_order" edge.
+func HasAddressOrder() predicate.Address {
+	return predicate.Address(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, AddressOrderTable, AddressOrderColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasAddressOrderWith applies the HasEdge predicate on the "address_order" edge with a given conditions (other predicates).
+func HasAddressOrderWith(preds ...predicate.Order) predicate.Address {
+	return predicate.Address(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(AddressOrderInverseTable, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, AddressOrderTable, AddressOrderColumn),
 		)
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {

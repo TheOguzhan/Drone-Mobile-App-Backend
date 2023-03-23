@@ -19,17 +19,28 @@ const (
 	FieldLatitude = "latitude"
 	// FieldLongtitude holds the string denoting the longtitude field in the database.
 	FieldLongtitude = "longtitude"
-	// EdgeAddressMaster holds the string denoting the address_master edge name in mutations.
-	EdgeAddressMaster = "address_master"
+	// FieldDescription holds the string denoting the description field in the database.
+	FieldDescription = "description"
+	// EdgeAddressOwner holds the string denoting the address_owner edge name in mutations.
+	EdgeAddressOwner = "address_owner"
+	// EdgeAddressOrder holds the string denoting the address_order edge name in mutations.
+	EdgeAddressOrder = "address_order"
 	// Table holds the table name of the address in the database.
 	Table = "addresses"
-	// AddressMasterTable is the table that holds the address_master relation/edge.
-	AddressMasterTable = "addresses"
-	// AddressMasterInverseTable is the table name for the User entity.
+	// AddressOwnerTable is the table that holds the address_owner relation/edge.
+	AddressOwnerTable = "addresses"
+	// AddressOwnerInverseTable is the table name for the User entity.
 	// It exists in this package in order to avoid circular dependency with the "user" package.
-	AddressMasterInverseTable = "users"
-	// AddressMasterColumn is the table column denoting the address_master relation/edge.
-	AddressMasterColumn = "user_address_slaves"
+	AddressOwnerInverseTable = "users"
+	// AddressOwnerColumn is the table column denoting the address_owner relation/edge.
+	AddressOwnerColumn = "user_user_addresses"
+	// AddressOrderTable is the table that holds the address_order relation/edge.
+	AddressOrderTable = "orders"
+	// AddressOrderInverseTable is the table name for the Order entity.
+	// It exists in this package in order to avoid circular dependency with the "order" package.
+	AddressOrderInverseTable = "orders"
+	// AddressOrderColumn is the table column denoting the address_order relation/edge.
+	AddressOrderColumn = "address_address_order"
 )
 
 // Columns holds all SQL columns for address fields.
@@ -39,12 +50,13 @@ var Columns = []string{
 	FieldAddressLine,
 	FieldLatitude,
 	FieldLongtitude,
+	FieldDescription,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "addresses"
 // table and are not defined as standalone fields in the schema.
 var ForeignKeys = []string{
-	"user_address_slaves",
+	"user_user_addresses",
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).

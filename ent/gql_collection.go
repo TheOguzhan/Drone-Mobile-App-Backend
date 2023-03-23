@@ -25,7 +25,7 @@ func (a *AddressQuery) collectField(ctx context.Context, op *graphql.OperationCo
 	path = append([]string(nil), path...)
 	for _, field := range graphql.CollectFields(op, field.Selections, satisfies) {
 		switch field.Name {
-		case "addressMaster":
+		case "addressOwner":
 			var (
 				alias = field.Alias
 				path  = append(path, alias)
@@ -34,7 +34,17 @@ func (a *AddressQuery) collectField(ctx context.Context, op *graphql.OperationCo
 			if err := query.collectField(ctx, op, field, path, satisfies...); err != nil {
 				return err
 			}
-			a.withAddressMaster = query
+			a.withAddressOwner = query
+		case "addressOrder":
+			var (
+				alias = field.Alias
+				path  = append(path, alias)
+				query = (&OrderClient{config: a.config}).Query()
+			)
+			if err := query.collectField(ctx, op, field, path, satisfies...); err != nil {
+				return err
+			}
+			a.withAddressOrder = query
 		}
 	}
 	return nil
@@ -67,6 +77,160 @@ func newAddressPaginateArgs(rv map[string]interface{}) *addressPaginateArgs {
 }
 
 // CollectFields tells the query-builder to eagerly load connected nodes by resolver context.
+func (d *DroneQuery) CollectFields(ctx context.Context, satisfies ...string) (*DroneQuery, error) {
+	fc := graphql.GetFieldContext(ctx)
+	if fc == nil {
+		return d, nil
+	}
+	if err := d.collectField(ctx, graphql.GetOperationContext(ctx), fc.Field, nil, satisfies...); err != nil {
+		return nil, err
+	}
+	return d, nil
+}
+
+func (d *DroneQuery) collectField(ctx context.Context, op *graphql.OperationContext, field graphql.CollectedField, path []string, satisfies ...string) error {
+	path = append([]string(nil), path...)
+	for _, field := range graphql.CollectFields(op, field.Selections, satisfies) {
+		switch field.Name {
+		case "currentOrder":
+			var (
+				alias = field.Alias
+				path  = append(path, alias)
+				query = (&OrderClient{config: d.config}).Query()
+			)
+			if err := query.collectField(ctx, op, field, path, satisfies...); err != nil {
+				return err
+			}
+			d.withCurrentOrder = query
+		}
+	}
+	return nil
+}
+
+type dronePaginateArgs struct {
+	first, last   *int
+	after, before *Cursor
+	opts          []DronePaginateOption
+}
+
+func newDronePaginateArgs(rv map[string]interface{}) *dronePaginateArgs {
+	args := &dronePaginateArgs{}
+	if rv == nil {
+		return args
+	}
+	if v := rv[firstField]; v != nil {
+		args.first = v.(*int)
+	}
+	if v := rv[lastField]; v != nil {
+		args.last = v.(*int)
+	}
+	if v := rv[afterField]; v != nil {
+		args.after = v.(*Cursor)
+	}
+	if v := rv[beforeField]; v != nil {
+		args.before = v.(*Cursor)
+	}
+	return args
+}
+
+// CollectFields tells the query-builder to eagerly load connected nodes by resolver context.
+func (o *OrderQuery) CollectFields(ctx context.Context, satisfies ...string) (*OrderQuery, error) {
+	fc := graphql.GetFieldContext(ctx)
+	if fc == nil {
+		return o, nil
+	}
+	if err := o.collectField(ctx, graphql.GetOperationContext(ctx), fc.Field, nil, satisfies...); err != nil {
+		return nil, err
+	}
+	return o, nil
+}
+
+func (o *OrderQuery) collectField(ctx context.Context, op *graphql.OperationContext, field graphql.CollectedField, path []string, satisfies ...string) error {
+	path = append([]string(nil), path...)
+	for _, field := range graphql.CollectFields(op, field.Selections, satisfies) {
+		switch field.Name {
+		case "carrierDrone":
+			var (
+				alias = field.Alias
+				path  = append(path, alias)
+				query = (&DroneClient{config: o.config}).Query()
+			)
+			if err := query.collectField(ctx, op, field, path, satisfies...); err != nil {
+				return err
+			}
+			o.withCarrierDrone = query
+		case "userOrder":
+			var (
+				alias = field.Alias
+				path  = append(path, alias)
+				query = (&UserClient{config: o.config}).Query()
+			)
+			if err := query.collectField(ctx, op, field, path, satisfies...); err != nil {
+				return err
+			}
+			o.withUserOrder = query
+		case "orderWarehouse":
+			var (
+				alias = field.Alias
+				path  = append(path, alias)
+				query = (&WarehouseClient{config: o.config}).Query()
+			)
+			if err := query.collectField(ctx, op, field, path, satisfies...); err != nil {
+				return err
+			}
+			o.withOrderWarehouse = query
+		case "orderAddress":
+			var (
+				alias = field.Alias
+				path  = append(path, alias)
+				query = (&AddressClient{config: o.config}).Query()
+			)
+			if err := query.collectField(ctx, op, field, path, satisfies...); err != nil {
+				return err
+			}
+			o.withOrderAddress = query
+		case "orderProduct":
+			var (
+				alias = field.Alias
+				path  = append(path, alias)
+				query = (&ProductClient{config: o.config}).Query()
+			)
+			if err := query.collectField(ctx, op, field, path, satisfies...); err != nil {
+				return err
+			}
+			o.withOrderProduct = query
+		}
+	}
+	return nil
+}
+
+type orderPaginateArgs struct {
+	first, last   *int
+	after, before *Cursor
+	opts          []OrderPaginateOption
+}
+
+func newOrderPaginateArgs(rv map[string]interface{}) *orderPaginateArgs {
+	args := &orderPaginateArgs{}
+	if rv == nil {
+		return args
+	}
+	if v := rv[firstField]; v != nil {
+		args.first = v.(*int)
+	}
+	if v := rv[lastField]; v != nil {
+		args.last = v.(*int)
+	}
+	if v := rv[afterField]; v != nil {
+		args.after = v.(*Cursor)
+	}
+	if v := rv[beforeField]; v != nil {
+		args.before = v.(*Cursor)
+	}
+	return args
+}
+
+// CollectFields tells the query-builder to eagerly load connected nodes by resolver context.
 func (pr *ProductQuery) CollectFields(ctx context.Context, satisfies ...string) (*ProductQuery, error) {
 	fc := graphql.GetFieldContext(ctx)
 	if fc == nil {
@@ -80,6 +244,22 @@ func (pr *ProductQuery) CollectFields(ctx context.Context, satisfies ...string) 
 
 func (pr *ProductQuery) collectField(ctx context.Context, op *graphql.OperationContext, field graphql.CollectedField, path []string, satisfies ...string) error {
 	path = append([]string(nil), path...)
+	for _, field := range graphql.CollectFields(op, field.Selections, satisfies) {
+		switch field.Name {
+		case "productOrder":
+			var (
+				alias = field.Alias
+				path  = append(path, alias)
+				query = (&OrderClient{config: pr.config}).Query()
+			)
+			if err := query.collectField(ctx, op, field, path, satisfies...); err != nil {
+				return err
+			}
+			pr.WithNamedProductOrder(alias, func(wq *OrderQuery) {
+				*wq = *query
+			})
+		}
+	}
 	return nil
 }
 
@@ -125,7 +305,7 @@ func (u *UserQuery) collectField(ctx context.Context, op *graphql.OperationConte
 	path = append([]string(nil), path...)
 	for _, field := range graphql.CollectFields(op, field.Selections, satisfies) {
 		switch field.Name {
-		case "addressSlaves":
+		case "userAddresses":
 			var (
 				alias = field.Alias
 				path  = append(path, alias)
@@ -134,7 +314,19 @@ func (u *UserQuery) collectField(ctx context.Context, op *graphql.OperationConte
 			if err := query.collectField(ctx, op, field, path, satisfies...); err != nil {
 				return err
 			}
-			u.WithNamedAddressSlaves(alias, func(wq *AddressQuery) {
+			u.WithNamedUserAddresses(alias, func(wq *AddressQuery) {
+				*wq = *query
+			})
+		case "userOrders":
+			var (
+				alias = field.Alias
+				path  = append(path, alias)
+				query = (&OrderClient{config: u.config}).Query()
+			)
+			if err := query.collectField(ctx, op, field, path, satisfies...); err != nil {
+				return err
+			}
+			u.WithNamedUserOrders(alias, func(wq *OrderQuery) {
 				*wq = *query
 			})
 		}
@@ -150,6 +342,63 @@ type userPaginateArgs struct {
 
 func newUserPaginateArgs(rv map[string]interface{}) *userPaginateArgs {
 	args := &userPaginateArgs{}
+	if rv == nil {
+		return args
+	}
+	if v := rv[firstField]; v != nil {
+		args.first = v.(*int)
+	}
+	if v := rv[lastField]; v != nil {
+		args.last = v.(*int)
+	}
+	if v := rv[afterField]; v != nil {
+		args.after = v.(*Cursor)
+	}
+	if v := rv[beforeField]; v != nil {
+		args.before = v.(*Cursor)
+	}
+	return args
+}
+
+// CollectFields tells the query-builder to eagerly load connected nodes by resolver context.
+func (w *WarehouseQuery) CollectFields(ctx context.Context, satisfies ...string) (*WarehouseQuery, error) {
+	fc := graphql.GetFieldContext(ctx)
+	if fc == nil {
+		return w, nil
+	}
+	if err := w.collectField(ctx, graphql.GetOperationContext(ctx), fc.Field, nil, satisfies...); err != nil {
+		return nil, err
+	}
+	return w, nil
+}
+
+func (w *WarehouseQuery) collectField(ctx context.Context, op *graphql.OperationContext, field graphql.CollectedField, path []string, satisfies ...string) error {
+	path = append([]string(nil), path...)
+	for _, field := range graphql.CollectFields(op, field.Selections, satisfies) {
+		switch field.Name {
+		case "warehouseOrder":
+			var (
+				alias = field.Alias
+				path  = append(path, alias)
+				query = (&OrderClient{config: w.config}).Query()
+			)
+			if err := query.collectField(ctx, op, field, path, satisfies...); err != nil {
+				return err
+			}
+			w.withWarehouseOrder = query
+		}
+	}
+	return nil
+}
+
+type warehousePaginateArgs struct {
+	first, last   *int
+	after, before *Cursor
+	opts          []WarehousePaginateOption
+}
+
+func newWarehousePaginateArgs(rv map[string]interface{}) *warehousePaginateArgs {
+	args := &warehousePaginateArgs{}
 	if rv == nil {
 		return args
 	}

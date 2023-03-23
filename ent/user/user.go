@@ -26,17 +26,26 @@ const (
 	FieldPassword = "password"
 	// FieldAuthTokens holds the string denoting the auth_tokens field in the database.
 	FieldAuthTokens = "auth_tokens"
-	// EdgeAddressSlaves holds the string denoting the address_slaves edge name in mutations.
-	EdgeAddressSlaves = "address_slaves"
+	// EdgeUserAddresses holds the string denoting the user_addresses edge name in mutations.
+	EdgeUserAddresses = "user_addresses"
+	// EdgeUserOrders holds the string denoting the user_orders edge name in mutations.
+	EdgeUserOrders = "user_orders"
 	// Table holds the table name of the user in the database.
 	Table = "users"
-	// AddressSlavesTable is the table that holds the address_slaves relation/edge.
-	AddressSlavesTable = "addresses"
-	// AddressSlavesInverseTable is the table name for the Address entity.
+	// UserAddressesTable is the table that holds the user_addresses relation/edge.
+	UserAddressesTable = "addresses"
+	// UserAddressesInverseTable is the table name for the Address entity.
 	// It exists in this package in order to avoid circular dependency with the "address" package.
-	AddressSlavesInverseTable = "addresses"
-	// AddressSlavesColumn is the table column denoting the address_slaves relation/edge.
-	AddressSlavesColumn = "user_address_slaves"
+	UserAddressesInverseTable = "addresses"
+	// UserAddressesColumn is the table column denoting the user_addresses relation/edge.
+	UserAddressesColumn = "user_user_addresses"
+	// UserOrdersTable is the table that holds the user_orders relation/edge.
+	UserOrdersTable = "orders"
+	// UserOrdersInverseTable is the table name for the Order entity.
+	// It exists in this package in order to avoid circular dependency with the "order" package.
+	UserOrdersInverseTable = "orders"
+	// UserOrdersColumn is the table column denoting the user_orders relation/edge.
+	UserOrdersColumn = "user_user_orders"
 )
 
 // Columns holds all SQL columns for user fields.

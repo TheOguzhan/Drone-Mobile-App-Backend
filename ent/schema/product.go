@@ -4,6 +4,7 @@ import (
 	"entgo.io/contrib/entgql"
 	"entgo.io/ent"
 	"entgo.io/ent/schema"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
 )
@@ -16,8 +17,8 @@ type Product struct {
 // Fields of the Product.
 func (Product) Fields() []ent.Field {
 	return []ent.Field{
-		field.UUID("id", uuid.UUID{}).Default(uuid.New),
-		field.Int("price").Positive(),
+		field.UUID("id", uuid.UUID{}).Default(uuid.New).Unique(),
+		field.Float("price").Positive(),
 		field.String("title"),
 		field.String("description"),
 		field.String("Name"),
@@ -27,7 +28,9 @@ func (Product) Fields() []ent.Field {
 
 // Edges of the Product.
 func (Product) Edges() []ent.Edge {
-	return nil
+	return []ent.Edge{
+		edge.To("product_order", Order.Type),
+	}
 }
 
 func (Product) Annotations() []schema.Annotation {

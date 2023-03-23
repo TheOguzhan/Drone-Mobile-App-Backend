@@ -8,22 +8,110 @@ import (
 	"github.com/99designs/gqlgen/graphql"
 )
 
-func (a *Address) AddressMaster(ctx context.Context) (*User, error) {
-	result, err := a.Edges.AddressMasterOrErr()
+func (a *Address) AddressOwner(ctx context.Context) (*User, error) {
+	result, err := a.Edges.AddressOwnerOrErr()
 	if IsNotLoaded(err) {
-		result, err = a.QueryAddressMaster().Only(ctx)
+		result, err = a.QueryAddressOwner().Only(ctx)
 	}
 	return result, err
 }
 
-func (u *User) AddressSlaves(ctx context.Context) (result []*Address, err error) {
-	if fc := graphql.GetFieldContext(ctx); fc != nil && fc.Field.Alias != "" {
-		result, err = u.NamedAddressSlaves(graphql.GetFieldContext(ctx).Field.Alias)
-	} else {
-		result, err = u.Edges.AddressSlavesOrErr()
-	}
+func (a *Address) AddressOrder(ctx context.Context) (*Order, error) {
+	result, err := a.Edges.AddressOrderOrErr()
 	if IsNotLoaded(err) {
-		result, err = u.QueryAddressSlaves().All(ctx)
+		result, err = a.QueryAddressOrder().Only(ctx)
+	}
+	return result, MaskNotFound(err)
+}
+
+func (d *Drone) CurrentOrder(ctx context.Context) (*Order, error) {
+	result, err := d.Edges.CurrentOrderOrErr()
+	if IsNotLoaded(err) {
+		result, err = d.QueryCurrentOrder().Only(ctx)
+	}
+	return result, MaskNotFound(err)
+}
+
+func (o *Order) CarrierDrone(ctx context.Context) (*Drone, error) {
+	result, err := o.Edges.CarrierDroneOrErr()
+	if IsNotLoaded(err) {
+		result, err = o.QueryCarrierDrone().Only(ctx)
 	}
 	return result, err
+}
+
+func (o *Order) UserOrder(ctx context.Context) (*User, error) {
+	result, err := o.Edges.UserOrderOrErr()
+	if IsNotLoaded(err) {
+		result, err = o.QueryUserOrder().Only(ctx)
+	}
+	return result, err
+}
+
+func (o *Order) OrderWarehouse(ctx context.Context) (*Warehouse, error) {
+	result, err := o.Edges.OrderWarehouseOrErr()
+	if IsNotLoaded(err) {
+		result, err = o.QueryOrderWarehouse().Only(ctx)
+	}
+	return result, err
+}
+
+func (o *Order) OrderAddress(ctx context.Context) (*Address, error) {
+	result, err := o.Edges.OrderAddressOrErr()
+	if IsNotLoaded(err) {
+		result, err = o.QueryOrderAddress().Only(ctx)
+	}
+	return result, err
+}
+
+func (o *Order) OrderProduct(ctx context.Context) (*Product, error) {
+	result, err := o.Edges.OrderProductOrErr()
+	if IsNotLoaded(err) {
+		result, err = o.QueryOrderProduct().Only(ctx)
+	}
+	return result, err
+}
+
+func (pr *Product) ProductOrder(ctx context.Context) (result []*Order, err error) {
+	if fc := graphql.GetFieldContext(ctx); fc != nil && fc.Field.Alias != "" {
+		result, err = pr.NamedProductOrder(graphql.GetFieldContext(ctx).Field.Alias)
+	} else {
+		result, err = pr.Edges.ProductOrderOrErr()
+	}
+	if IsNotLoaded(err) {
+		result, err = pr.QueryProductOrder().All(ctx)
+	}
+	return result, err
+}
+
+func (u *User) UserAddresses(ctx context.Context) (result []*Address, err error) {
+	if fc := graphql.GetFieldContext(ctx); fc != nil && fc.Field.Alias != "" {
+		result, err = u.NamedUserAddresses(graphql.GetFieldContext(ctx).Field.Alias)
+	} else {
+		result, err = u.Edges.UserAddressesOrErr()
+	}
+	if IsNotLoaded(err) {
+		result, err = u.QueryUserAddresses().All(ctx)
+	}
+	return result, err
+}
+
+func (u *User) UserOrders(ctx context.Context) (result []*Order, err error) {
+	if fc := graphql.GetFieldContext(ctx); fc != nil && fc.Field.Alias != "" {
+		result, err = u.NamedUserOrders(graphql.GetFieldContext(ctx).Field.Alias)
+	} else {
+		result, err = u.Edges.UserOrdersOrErr()
+	}
+	if IsNotLoaded(err) {
+		result, err = u.QueryUserOrders().All(ctx)
+	}
+	return result, err
+}
+
+func (w *Warehouse) WarehouseOrder(ctx context.Context) (*Order, error) {
+	result, err := w.Edges.WarehouseOrderOrErr()
+	if IsNotLoaded(err) {
+		result, err = w.QueryWarehouseOrder().Only(ctx)
+	}
+	return result, MaskNotFound(err)
 }

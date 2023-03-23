@@ -3,10 +3,15 @@
 package runtime
 
 import (
+	"time"
+
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/address"
+	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/drone"
+	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/order"
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/product"
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/schema"
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/user"
+	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/warehouse"
 	"github.com/google/uuid"
 )
 
@@ -20,12 +25,40 @@ func init() {
 	addressDescID := addressFields[0].Descriptor()
 	// address.DefaultID holds the default value on creation for the id field.
 	address.DefaultID = addressDescID.Default.(func() uuid.UUID)
+	droneFields := schema.Drone{}.Fields()
+	_ = droneFields
+	// droneDescInWarehouse is the schema descriptor for in_warehouse field.
+	droneDescInWarehouse := droneFields[3].Descriptor()
+	// drone.DefaultInWarehouse holds the default value on creation for the in_warehouse field.
+	drone.DefaultInWarehouse = droneDescInWarehouse.Default.(bool)
+	// droneDescID is the schema descriptor for id field.
+	droneDescID := droneFields[0].Descriptor()
+	// drone.DefaultID holds the default value on creation for the id field.
+	drone.DefaultID = droneDescID.Default.(func() uuid.UUID)
+	orderFields := schema.Order{}.Fields()
+	_ = orderFields
+	// orderDescQrCode is the schema descriptor for qr_code field.
+	orderDescQrCode := orderFields[1].Descriptor()
+	// order.DefaultQrCode holds the default value on creation for the qr_code field.
+	order.DefaultQrCode = orderDescQrCode.Default.(string)
+	// orderDescDateOfTheOrder is the schema descriptor for date_of_the_order field.
+	orderDescDateOfTheOrder := orderFields[2].Descriptor()
+	// order.DefaultDateOfTheOrder holds the default value on creation for the date_of_the_order field.
+	order.DefaultDateOfTheOrder = orderDescDateOfTheOrder.Default.(func() time.Time)
+	// orderDescCompleted is the schema descriptor for completed field.
+	orderDescCompleted := orderFields[3].Descriptor()
+	// order.DefaultCompleted holds the default value on creation for the completed field.
+	order.DefaultCompleted = orderDescCompleted.Default.(bool)
+	// orderDescID is the schema descriptor for id field.
+	orderDescID := orderFields[0].Descriptor()
+	// order.DefaultID holds the default value on creation for the id field.
+	order.DefaultID = orderDescID.Default.(func() uuid.UUID)
 	productFields := schema.Product{}.Fields()
 	_ = productFields
 	// productDescPrice is the schema descriptor for price field.
 	productDescPrice := productFields[1].Descriptor()
 	// product.PriceValidator is a validator for the "price" field. It is called by the builders before save.
-	product.PriceValidator = productDescPrice.Validators[0].(func(int) error)
+	product.PriceValidator = productDescPrice.Validators[0].(func(float64) error)
 	// productDescID is the schema descriptor for id field.
 	productDescID := productFields[0].Descriptor()
 	// product.DefaultID holds the default value on creation for the id field.
@@ -46,6 +79,12 @@ func init() {
 	userDescID := userFields[0].Descriptor()
 	// user.DefaultID holds the default value on creation for the id field.
 	user.DefaultID = userDescID.Default.(func() uuid.UUID)
+	warehouseFields := schema.Warehouse{}.Fields()
+	_ = warehouseFields
+	// warehouseDescID is the schema descriptor for id field.
+	warehouseDescID := warehouseFields[0].Descriptor()
+	// warehouse.DefaultID holds the default value on creation for the id field.
+	warehouse.DefaultID = warehouseDescID.Default.(func() uuid.UUID)
 }
 
 const (

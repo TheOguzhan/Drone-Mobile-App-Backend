@@ -18,3 +18,14 @@ func HashPassword(password ent.Value) ent.Value {
 
 	return fmt.Sprintf("%x", hash)
 }
+
+func HashToString(password string) string {
+	salt := os.Getenv("PASSWORD_HASH")
+	if salt == "" {
+		panic("PASSWORD_HASH environment variable not set")
+	}
+	saltedPassword := []byte(fmt.Sprintf("%x", password) + salt)
+	hash := sha256.Sum256(saltedPassword)
+
+	return fmt.Sprintf("%x", hash)
+}

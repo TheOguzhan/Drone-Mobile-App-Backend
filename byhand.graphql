@@ -3,4 +3,15 @@ type Mutation {
     register(input: CreateUserInput!): User!
     createAddress(input: CreateAddressInput!): Address!
     registerAProduct(input: CreateProductInput!): Product!
+    login(input: LoginInput!): User! 
+    registerAWarehouse(input: CreateWarehouseInput): Warehouse!
+    registerADrone(input: CreateDroneInput): Drone!
+    createAnOrder(input: CreateOrderInput!): Order!
 }
+
+input LoginInput{
+    email: String!
+    password: String!
+}
+
+scalar Location

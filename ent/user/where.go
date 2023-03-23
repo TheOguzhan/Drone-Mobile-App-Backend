@@ -429,24 +429,51 @@ func AuthTokensNotNil() predicate.User {
 	return predicate.User(sql.FieldNotNull(FieldAuthTokens))
 }
 
-// HasAddressSlaves applies the HasEdge predicate on the "address_slaves" edge.
-func HasAddressSlaves() predicate.User {
+// HasUserAddresses applies the HasEdge predicate on the "user_addresses" edge.
+func HasUserAddresses() predicate.User {
 	return predicate.User(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, AddressSlavesTable, AddressSlavesColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, UserAddressesTable, UserAddressesColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasAddressSlavesWith applies the HasEdge predicate on the "address_slaves" edge with a given conditions (other predicates).
-func HasAddressSlavesWith(preds ...predicate.Address) predicate.User {
+// HasUserAddressesWith applies the HasEdge predicate on the "user_addresses" edge with a given conditions (other predicates).
+func HasUserAddressesWith(preds ...predicate.Address) predicate.User {
 	return predicate.User(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.To(AddressSlavesInverseTable, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, AddressSlavesTable, AddressSlavesColumn),
+			sqlgraph.To(UserAddressesInverseTable, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, UserAddressesTable, UserAddressesColumn),
+		)
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasUserOrders applies the HasEdge predicate on the "user_orders" edge.
+func HasUserOrders() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, UserOrdersTable, UserOrdersColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasUserOrdersWith applies the HasEdge predicate on the "user_orders" edge with a given conditions (other predicates).
+func HasUserOrdersWith(preds ...predicate.Order) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(UserOrdersInverseTable, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, UserOrdersTable, UserOrdersColumn),
 		)
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {

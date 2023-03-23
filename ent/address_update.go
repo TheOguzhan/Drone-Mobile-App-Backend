@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/address"
+	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/order"
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/predicate"
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/user"
 	"github.com/google/uuid"
@@ -67,15 +68,40 @@ func (au *AddressUpdate) AddLongtitude(f float64) *AddressUpdate {
 	return au
 }
 
-// SetAddressMasterID sets the "address_master" edge to the User entity by ID.
-func (au *AddressUpdate) SetAddressMasterID(id uuid.UUID) *AddressUpdate {
-	au.mutation.SetAddressMasterID(id)
+// SetDescription sets the "description" field.
+func (au *AddressUpdate) SetDescription(s string) *AddressUpdate {
+	au.mutation.SetDescription(s)
 	return au
 }
 
-// SetAddressMaster sets the "address_master" edge to the User entity.
-func (au *AddressUpdate) SetAddressMaster(u *User) *AddressUpdate {
-	return au.SetAddressMasterID(u.ID)
+// SetAddressOwnerID sets the "address_owner" edge to the User entity by ID.
+func (au *AddressUpdate) SetAddressOwnerID(id uuid.UUID) *AddressUpdate {
+	au.mutation.SetAddressOwnerID(id)
+	return au
+}
+
+// SetAddressOwner sets the "address_owner" edge to the User entity.
+func (au *AddressUpdate) SetAddressOwner(u *User) *AddressUpdate {
+	return au.SetAddressOwnerID(u.ID)
+}
+
+// SetAddressOrderID sets the "address_order" edge to the Order entity by ID.
+func (au *AddressUpdate) SetAddressOrderID(id uuid.UUID) *AddressUpdate {
+	au.mutation.SetAddressOrderID(id)
+	return au
+}
+
+// SetNillableAddressOrderID sets the "address_order" edge to the Order entity by ID if the given value is not nil.
+func (au *AddressUpdate) SetNillableAddressOrderID(id *uuid.UUID) *AddressUpdate {
+	if id != nil {
+		au = au.SetAddressOrderID(*id)
+	}
+	return au
+}
+
+// SetAddressOrder sets the "address_order" edge to the Order entity.
+func (au *AddressUpdate) SetAddressOrder(o *Order) *AddressUpdate {
+	return au.SetAddressOrderID(o.ID)
 }
 
 // Mutation returns the AddressMutation object of the builder.
@@ -83,9 +109,15 @@ func (au *AddressUpdate) Mutation() *AddressMutation {
 	return au.mutation
 }
 
-// ClearAddressMaster clears the "address_master" edge to the User entity.
-func (au *AddressUpdate) ClearAddressMaster() *AddressUpdate {
-	au.mutation.ClearAddressMaster()
+// ClearAddressOwner clears the "address_owner" edge to the User entity.
+func (au *AddressUpdate) ClearAddressOwner() *AddressUpdate {
+	au.mutation.ClearAddressOwner()
+	return au
+}
+
+// ClearAddressOrder clears the "address_order" edge to the Order entity.
+func (au *AddressUpdate) ClearAddressOrder() *AddressUpdate {
+	au.mutation.ClearAddressOrder()
 	return au
 }
 
@@ -118,8 +150,8 @@ func (au *AddressUpdate) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (au *AddressUpdate) check() error {
-	if _, ok := au.mutation.AddressMasterID(); au.mutation.AddressMasterCleared() && !ok {
-		return errors.New(`ent: clearing a required unique edge "Address.address_master"`)
+	if _, ok := au.mutation.AddressOwnerID(); au.mutation.AddressOwnerCleared() && !ok {
+		return errors.New(`ent: clearing a required unique edge "Address.address_owner"`)
 	}
 	return nil
 }
@@ -154,12 +186,15 @@ func (au *AddressUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := au.mutation.AddedLongtitude(); ok {
 		_spec.AddField(address.FieldLongtitude, field.TypeFloat64, value)
 	}
-	if au.mutation.AddressMasterCleared() {
+	if value, ok := au.mutation.Description(); ok {
+		_spec.SetField(address.FieldDescription, field.TypeString, value)
+	}
+	if au.mutation.AddressOwnerCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   address.AddressMasterTable,
-			Columns: []string{address.AddressMasterColumn},
+			Table:   address.AddressOwnerTable,
+			Columns: []string{address.AddressOwnerColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
@@ -170,17 +205,52 @@ func (au *AddressUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := au.mutation.AddressMasterIDs(); len(nodes) > 0 {
+	if nodes := au.mutation.AddressOwnerIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   address.AddressMasterTable,
-			Columns: []string{address.AddressMasterColumn},
+			Table:   address.AddressOwnerTable,
+			Columns: []string{address.AddressOwnerColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
 					Type:   field.TypeUUID,
 					Column: user.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if au.mutation.AddressOrderCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   address.AddressOrderTable,
+			Columns: []string{address.AddressOrderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUUID,
+					Column: order.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := au.mutation.AddressOrderIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   address.AddressOrderTable,
+			Columns: []string{address.AddressOrderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUUID,
+					Column: order.FieldID,
 				},
 			},
 		}
@@ -247,15 +317,40 @@ func (auo *AddressUpdateOne) AddLongtitude(f float64) *AddressUpdateOne {
 	return auo
 }
 
-// SetAddressMasterID sets the "address_master" edge to the User entity by ID.
-func (auo *AddressUpdateOne) SetAddressMasterID(id uuid.UUID) *AddressUpdateOne {
-	auo.mutation.SetAddressMasterID(id)
+// SetDescription sets the "description" field.
+func (auo *AddressUpdateOne) SetDescription(s string) *AddressUpdateOne {
+	auo.mutation.SetDescription(s)
 	return auo
 }
 
-// SetAddressMaster sets the "address_master" edge to the User entity.
-func (auo *AddressUpdateOne) SetAddressMaster(u *User) *AddressUpdateOne {
-	return auo.SetAddressMasterID(u.ID)
+// SetAddressOwnerID sets the "address_owner" edge to the User entity by ID.
+func (auo *AddressUpdateOne) SetAddressOwnerID(id uuid.UUID) *AddressUpdateOne {
+	auo.mutation.SetAddressOwnerID(id)
+	return auo
+}
+
+// SetAddressOwner sets the "address_owner" edge to the User entity.
+func (auo *AddressUpdateOne) SetAddressOwner(u *User) *AddressUpdateOne {
+	return auo.SetAddressOwnerID(u.ID)
+}
+
+// SetAddressOrderID sets the "address_order" edge to the Order entity by ID.
+func (auo *AddressUpdateOne) SetAddressOrderID(id uuid.UUID) *AddressUpdateOne {
+	auo.mutation.SetAddressOrderID(id)
+	return auo
+}
+
+// SetNillableAddressOrderID sets the "address_order" edge to the Order entity by ID if the given value is not nil.
+func (auo *AddressUpdateOne) SetNillableAddressOrderID(id *uuid.UUID) *AddressUpdateOne {
+	if id != nil {
+		auo = auo.SetAddressOrderID(*id)
+	}
+	return auo
+}
+
+// SetAddressOrder sets the "address_order" edge to the Order entity.
+func (auo *AddressUpdateOne) SetAddressOrder(o *Order) *AddressUpdateOne {
+	return auo.SetAddressOrderID(o.ID)
 }
 
 // Mutation returns the AddressMutation object of the builder.
@@ -263,9 +358,15 @@ func (auo *AddressUpdateOne) Mutation() *AddressMutation {
 	return auo.mutation
 }
 
-// ClearAddressMaster clears the "address_master" edge to the User entity.
-func (auo *AddressUpdateOne) ClearAddressMaster() *AddressUpdateOne {
-	auo.mutation.ClearAddressMaster()
+// ClearAddressOwner clears the "address_owner" edge to the User entity.
+func (auo *AddressUpdateOne) ClearAddressOwner() *AddressUpdateOne {
+	auo.mutation.ClearAddressOwner()
+	return auo
+}
+
+// ClearAddressOrder clears the "address_order" edge to the Order entity.
+func (auo *AddressUpdateOne) ClearAddressOrder() *AddressUpdateOne {
+	auo.mutation.ClearAddressOrder()
 	return auo
 }
 
@@ -311,8 +412,8 @@ func (auo *AddressUpdateOne) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (auo *AddressUpdateOne) check() error {
-	if _, ok := auo.mutation.AddressMasterID(); auo.mutation.AddressMasterCleared() && !ok {
-		return errors.New(`ent: clearing a required unique edge "Address.address_master"`)
+	if _, ok := auo.mutation.AddressOwnerID(); auo.mutation.AddressOwnerCleared() && !ok {
+		return errors.New(`ent: clearing a required unique edge "Address.address_owner"`)
 	}
 	return nil
 }
@@ -364,12 +465,15 @@ func (auo *AddressUpdateOne) sqlSave(ctx context.Context) (_node *Address, err e
 	if value, ok := auo.mutation.AddedLongtitude(); ok {
 		_spec.AddField(address.FieldLongtitude, field.TypeFloat64, value)
 	}
-	if auo.mutation.AddressMasterCleared() {
+	if value, ok := auo.mutation.Description(); ok {
+		_spec.SetField(address.FieldDescription, field.TypeString, value)
+	}
+	if auo.mutation.AddressOwnerCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   address.AddressMasterTable,
-			Columns: []string{address.AddressMasterColumn},
+			Table:   address.AddressOwnerTable,
+			Columns: []string{address.AddressOwnerColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
@@ -380,17 +484,52 @@ func (auo *AddressUpdateOne) sqlSave(ctx context.Context) (_node *Address, err e
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := auo.mutation.AddressMasterIDs(); len(nodes) > 0 {
+	if nodes := auo.mutation.AddressOwnerIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   address.AddressMasterTable,
-			Columns: []string{address.AddressMasterColumn},
+			Table:   address.AddressOwnerTable,
+			Columns: []string{address.AddressOwnerColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
 					Type:   field.TypeUUID,
 					Column: user.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if auo.mutation.AddressOrderCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   address.AddressOrderTable,
+			Columns: []string{address.AddressOrderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUUID,
+					Column: order.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := auo.mutation.AddressOrderIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   address.AddressOrderTable,
+			Columns: []string{address.AddressOrderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUUID,
+					Column: order.FieldID,
 				},
 			},
 		}

@@ -17,21 +17,23 @@ type Address struct {
 // Fields of the Address.
 func (Address) Fields() []ent.Field {
 	return []ent.Field{
-		field.UUID("id", uuid.UUID{}).Default(uuid.New),
+		field.UUID("id", uuid.UUID{}).Default(uuid.New).Unique(),
 		field.String("name"),
 		field.String("address_line"),
 		field.Float("latitude"),
 		field.Float("longtitude"),
+		field.String("description"),
 	}
 }
 
 // Edges of the Address.
 func (Address) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("address_master", User.Type).
-			Ref("address_slaves").
+		edge.From("address_owner", User.Type).
+			Ref("user_addresses").
 			Unique().
 			Required().Annotations(entgql.Skip(entgql.SkipMutationCreateInput)),
+		edge.To("address_order", Order.Type).Unique(),
 	}
 }
 

@@ -38,24 +38,36 @@ type User struct {
 
 // UserEdges holds the relations/edges for other nodes in the graph.
 type UserEdges struct {
-	// AddressSlaves holds the value of the address_slaves edge.
-	AddressSlaves []*Address `json:"address_slaves,omitempty"`
+	// UserAddresses holds the value of the user_addresses edge.
+	UserAddresses []*Address `json:"user_addresses,omitempty"`
+	// UserOrders holds the value of the user_orders edge.
+	UserOrders []*Order `json:"user_orders,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 	// totalCount holds the count of the edges above.
-	totalCount [1]map[string]int
+	totalCount [2]map[string]int
 
-	namedAddressSlaves map[string][]*Address
+	namedUserAddresses map[string][]*Address
+	namedUserOrders    map[string][]*Order
 }
 
-// AddressSlavesOrErr returns the AddressSlaves value or an error if the edge
+// UserAddressesOrErr returns the UserAddresses value or an error if the edge
 // was not loaded in eager-loading.
-func (e UserEdges) AddressSlavesOrErr() ([]*Address, error) {
+func (e UserEdges) UserAddressesOrErr() ([]*Address, error) {
 	if e.loadedTypes[0] {
-		return e.AddressSlaves, nil
+		return e.UserAddresses, nil
 	}
-	return nil, &NotLoadedError{edge: "address_slaves"}
+	return nil, &NotLoadedError{edge: "user_addresses"}
+}
+
+// UserOrdersOrErr returns the UserOrders value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) UserOrdersOrErr() ([]*Order, error) {
+	if e.loadedTypes[1] {
+		return e.UserOrders, nil
+	}
+	return nil, &NotLoadedError{edge: "user_orders"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -141,9 +153,14 @@ func (u *User) assignValues(columns []string, values []any) error {
 	return nil
 }
 
-// QueryAddressSlaves queries the "address_slaves" edge of the User entity.
-func (u *User) QueryAddressSlaves() *AddressQuery {
-	return NewUserClient(u.config).QueryAddressSlaves(u)
+// QueryUserAddresses queries the "user_addresses" edge of the User entity.
+func (u *User) QueryUserAddresses() *AddressQuery {
+	return NewUserClient(u.config).QueryUserAddresses(u)
+}
+
+// QueryUserOrders queries the "user_orders" edge of the User entity.
+func (u *User) QueryUserOrders() *OrderQuery {
+	return NewUserClient(u.config).QueryUserOrders(u)
 }
 
 // Update returns a builder for updating this User.
@@ -192,27 +209,51 @@ func (u *User) String() string {
 	return builder.String()
 }
 
-// NamedAddressSlaves returns the AddressSlaves named value or an error if the edge was not
+// NamedUserAddresses returns the UserAddresses named value or an error if the edge was not
 // loaded in eager-loading with this name.
-func (u *User) NamedAddressSlaves(name string) ([]*Address, error) {
-	if u.Edges.namedAddressSlaves == nil {
+func (u *User) NamedUserAddresses(name string) ([]*Address, error) {
+	if u.Edges.namedUserAddresses == nil {
 		return nil, &NotLoadedError{edge: name}
 	}
-	nodes, ok := u.Edges.namedAddressSlaves[name]
+	nodes, ok := u.Edges.namedUserAddresses[name]
 	if !ok {
 		return nil, &NotLoadedError{edge: name}
 	}
 	return nodes, nil
 }
 
-func (u *User) appendNamedAddressSlaves(name string, edges ...*Address) {
-	if u.Edges.namedAddressSlaves == nil {
-		u.Edges.namedAddressSlaves = make(map[string][]*Address)
+func (u *User) appendNamedUserAddresses(name string, edges ...*Address) {
+	if u.Edges.namedUserAddresses == nil {
+		u.Edges.namedUserAddresses = make(map[string][]*Address)
 	}
 	if len(edges) == 0 {
-		u.Edges.namedAddressSlaves[name] = []*Address{}
+		u.Edges.namedUserAddresses[name] = []*Address{}
 	} else {
-		u.Edges.namedAddressSlaves[name] = append(u.Edges.namedAddressSlaves[name], edges...)
+		u.Edges.namedUserAddresses[name] = append(u.Edges.namedUserAddresses[name], edges...)
+	}
+}
+
+// NamedUserOrders returns the UserOrders named value or an error if the edge was not
+// loaded in eager-loading with this name.
+func (u *User) NamedUserOrders(name string) ([]*Order, error) {
+	if u.Edges.namedUserOrders == nil {
+		return nil, &NotLoadedError{edge: name}
+	}
+	nodes, ok := u.Edges.namedUserOrders[name]
+	if !ok {
+		return nil, &NotLoadedError{edge: name}
+	}
+	return nodes, nil
+}
+
+func (u *User) appendNamedUserOrders(name string, edges ...*Order) {
+	if u.Edges.namedUserOrders == nil {
+		u.Edges.namedUserOrders = make(map[string][]*Order)
+	}
+	if len(edges) == 0 {
+		u.Edges.namedUserOrders[name] = []*Order{}
+	} else {
+		u.Edges.namedUserOrders[name] = append(u.Edges.namedUserOrders[name], edges...)
 	}
 }
 

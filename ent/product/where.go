@@ -4,6 +4,7 @@ package product
 
 import (
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/predicate"
 	"github.com/google/uuid"
 )
@@ -54,7 +55,7 @@ func IDLTE(id uuid.UUID) predicate.Product {
 }
 
 // Price applies equality check predicate on the "price" field. It's identical to PriceEQ.
-func Price(v int) predicate.Product {
+func Price(v float64) predicate.Product {
 	return predicate.Product(sql.FieldEQ(FieldPrice, v))
 }
 
@@ -74,42 +75,42 @@ func Name(v string) predicate.Product {
 }
 
 // PriceEQ applies the EQ predicate on the "price" field.
-func PriceEQ(v int) predicate.Product {
+func PriceEQ(v float64) predicate.Product {
 	return predicate.Product(sql.FieldEQ(FieldPrice, v))
 }
 
 // PriceNEQ applies the NEQ predicate on the "price" field.
-func PriceNEQ(v int) predicate.Product {
+func PriceNEQ(v float64) predicate.Product {
 	return predicate.Product(sql.FieldNEQ(FieldPrice, v))
 }
 
 // PriceIn applies the In predicate on the "price" field.
-func PriceIn(vs ...int) predicate.Product {
+func PriceIn(vs ...float64) predicate.Product {
 	return predicate.Product(sql.FieldIn(FieldPrice, vs...))
 }
 
 // PriceNotIn applies the NotIn predicate on the "price" field.
-func PriceNotIn(vs ...int) predicate.Product {
+func PriceNotIn(vs ...float64) predicate.Product {
 	return predicate.Product(sql.FieldNotIn(FieldPrice, vs...))
 }
 
 // PriceGT applies the GT predicate on the "price" field.
-func PriceGT(v int) predicate.Product {
+func PriceGT(v float64) predicate.Product {
 	return predicate.Product(sql.FieldGT(FieldPrice, v))
 }
 
 // PriceGTE applies the GTE predicate on the "price" field.
-func PriceGTE(v int) predicate.Product {
+func PriceGTE(v float64) predicate.Product {
 	return predicate.Product(sql.FieldGTE(FieldPrice, v))
 }
 
 // PriceLT applies the LT predicate on the "price" field.
-func PriceLT(v int) predicate.Product {
+func PriceLT(v float64) predicate.Product {
 	return predicate.Product(sql.FieldLT(FieldPrice, v))
 }
 
 // PriceLTE applies the LTE predicate on the "price" field.
-func PriceLTE(v int) predicate.Product {
+func PriceLTE(v float64) predicate.Product {
 	return predicate.Product(sql.FieldLTE(FieldPrice, v))
 }
 
@@ -316,6 +317,33 @@ func FotosIsNil() predicate.Product {
 // FotosNotNil applies the NotNil predicate on the "Fotos" field.
 func FotosNotNil() predicate.Product {
 	return predicate.Product(sql.FieldNotNull(FieldFotos))
+}
+
+// HasProductOrder applies the HasEdge predicate on the "product_order" edge.
+func HasProductOrder() predicate.Product {
+	return predicate.Product(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ProductOrderTable, ProductOrderColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasProductOrderWith applies the HasEdge predicate on the "product_order" edge with a given conditions (other predicates).
+func HasProductOrderWith(preds ...predicate.Order) predicate.Product {
+	return predicate.Product(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(ProductOrderInverseTable, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ProductOrderTable, ProductOrderColumn),
+		)
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // And groups predicates with the AND operator between them.

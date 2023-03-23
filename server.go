@@ -15,6 +15,7 @@ import (
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/routes"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/gofiber/template/html"
 	"github.com/joho/godotenv"
 	"github.com/valyala/fasthttp/fasthttpadaptor"
 
@@ -55,7 +56,11 @@ func main() {
 		Complexity: graph.ComplexityRoot{},
 	}))
 
-	app := fiber.New()
+	engine := html.New("./views", ".html")
+
+	app := fiber.New(fiber.Config{
+		Views: engine,
+	})
 
 	app.Use(logger.New())
 
@@ -82,6 +87,13 @@ func main() {
 	app.Post("/file-upload", routes.HandleFileUploads)
 
 	app.Static("/static-files", "./static-files")
+
+	app.Get("/qr-codes/:code", func(c *fiber.Ctx) error {
+		// Render index template
+		return c.Render("index", fiber.Map{
+			"code": c.Params("code"),
+		})
+	})
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
 

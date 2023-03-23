@@ -9,8 +9,11 @@ import (
 	"entgo.io/contrib/entgql"
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/address"
+	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/drone"
+	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/order"
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/product"
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/user"
+	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/warehouse"
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-multierror"
 )
@@ -24,10 +27,19 @@ type Noder interface {
 func (n *Address) IsNode() {}
 
 // IsNode implements the Node interface check for GQLGen.
+func (n *Drone) IsNode() {}
+
+// IsNode implements the Node interface check for GQLGen.
+func (n *Order) IsNode() {}
+
+// IsNode implements the Node interface check for GQLGen.
 func (n *Product) IsNode() {}
 
 // IsNode implements the Node interface check for GQLGen.
 func (n *User) IsNode() {}
+
+// IsNode implements the Node interface check for GQLGen.
+func (n *Warehouse) IsNode() {}
 
 var errNodeInvalidID = &NotFoundError{"node"}
 
@@ -99,6 +111,30 @@ func (c *Client) noder(ctx context.Context, table string, id uuid.UUID) (Noder, 
 			return nil, err
 		}
 		return n, nil
+	case drone.Table:
+		query := c.Drone.Query().
+			Where(drone.ID(id))
+		query, err := query.CollectFields(ctx, "Drone")
+		if err != nil {
+			return nil, err
+		}
+		n, err := query.Only(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return n, nil
+	case order.Table:
+		query := c.Order.Query().
+			Where(order.ID(id))
+		query, err := query.CollectFields(ctx, "Order")
+		if err != nil {
+			return nil, err
+		}
+		n, err := query.Only(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return n, nil
 	case product.Table:
 		query := c.Product.Query().
 			Where(product.ID(id))
@@ -115,6 +151,18 @@ func (c *Client) noder(ctx context.Context, table string, id uuid.UUID) (Noder, 
 		query := c.User.Query().
 			Where(user.ID(id))
 		query, err := query.CollectFields(ctx, "User")
+		if err != nil {
+			return nil, err
+		}
+		n, err := query.Only(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return n, nil
+	case warehouse.Table:
+		query := c.Warehouse.Query().
+			Where(warehouse.ID(id))
+		query, err := query.CollectFields(ctx, "Warehouse")
 		if err != nil {
 			return nil, err
 		}
@@ -212,6 +260,38 @@ func (c *Client) noders(ctx context.Context, table string, ids []uuid.UUID) ([]N
 				*noder = node
 			}
 		}
+	case drone.Table:
+		query := c.Drone.Query().
+			Where(drone.IDIn(ids...))
+		query, err := query.CollectFields(ctx, "Drone")
+		if err != nil {
+			return nil, err
+		}
+		nodes, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, node := range nodes {
+			for _, noder := range idmap[node.ID] {
+				*noder = node
+			}
+		}
+	case order.Table:
+		query := c.Order.Query().
+			Where(order.IDIn(ids...))
+		query, err := query.CollectFields(ctx, "Order")
+		if err != nil {
+			return nil, err
+		}
+		nodes, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, node := range nodes {
+			for _, noder := range idmap[node.ID] {
+				*noder = node
+			}
+		}
 	case product.Table:
 		query := c.Product.Query().
 			Where(product.IDIn(ids...))
@@ -232,6 +312,22 @@ func (c *Client) noders(ctx context.Context, table string, ids []uuid.UUID) ([]N
 		query := c.User.Query().
 			Where(user.IDIn(ids...))
 		query, err := query.CollectFields(ctx, "User")
+		if err != nil {
+			return nil, err
+		}
+		nodes, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, node := range nodes {
+			for _, noder := range idmap[node.ID] {
+				*noder = node
+			}
+		}
+	case warehouse.Table:
+		query := c.Warehouse.Query().
+			Where(warehouse.IDIn(ids...))
+		query, err := query.CollectFields(ctx, "Warehouse")
 		if err != nil {
 			return nil, err
 		}

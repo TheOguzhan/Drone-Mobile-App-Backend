@@ -10,12 +10,13 @@ import (
 var (
 	// AddressesColumns holds the columns for the "addresses" table.
 	AddressesColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeUUID},
+		{Name: "id", Type: field.TypeUUID, Unique: true},
 		{Name: "name", Type: field.TypeString},
 		{Name: "address_line", Type: field.TypeString},
 		{Name: "latitude", Type: field.TypeFloat64},
 		{Name: "longtitude", Type: field.TypeFloat64},
-		{Name: "user_address_slaves", Type: field.TypeUUID},
+		{Name: "description", Type: field.TypeString},
+		{Name: "user_user_addresses", Type: field.TypeUUID},
 	}
 	// AddressesTable holds the schema information for the "addresses" table.
 	AddressesTable = &schema.Table{
@@ -24,17 +25,81 @@ var (
 		PrimaryKey: []*schema.Column{AddressesColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "addresses_users_address_slaves",
-				Columns:    []*schema.Column{AddressesColumns[5]},
+				Symbol:     "addresses_users_user_addresses",
+				Columns:    []*schema.Column{AddressesColumns[6]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+	}
+	// DronesColumns holds the columns for the "drones" table.
+	DronesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID, Unique: true},
+		{Name: "latitude", Type: field.TypeFloat64, Nullable: true},
+		{Name: "longtitude", Type: field.TypeFloat64, Nullable: true},
+		{Name: "in_warehouse", Type: field.TypeBool, Nullable: true, Default: true},
+		{Name: "plate_number", Type: field.TypeString, Unique: true},
+	}
+	// DronesTable holds the schema information for the "drones" table.
+	DronesTable = &schema.Table{
+		Name:       "drones",
+		Columns:    DronesColumns,
+		PrimaryKey: []*schema.Column{DronesColumns[0]},
+	}
+	// OrdersColumns holds the columns for the "orders" table.
+	OrdersColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID, Unique: true},
+		{Name: "qr_code", Type: field.TypeString, Default: "79b4ff41-9452-4a9c-bebd-957f59e96674"},
+		{Name: "date_of_the_order", Type: field.TypeTime},
+		{Name: "completed", Type: field.TypeBool, Default: false},
+		{Name: "address_address_order", Type: field.TypeUUID, Unique: true},
+		{Name: "drone_current_order", Type: field.TypeUUID, Unique: true},
+		{Name: "product_product_order", Type: field.TypeUUID},
+		{Name: "user_user_orders", Type: field.TypeUUID},
+		{Name: "warehouse_warehouse_order", Type: field.TypeUUID, Unique: true},
+	}
+	// OrdersTable holds the schema information for the "orders" table.
+	OrdersTable = &schema.Table{
+		Name:       "orders",
+		Columns:    OrdersColumns,
+		PrimaryKey: []*schema.Column{OrdersColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "orders_addresses_address_order",
+				Columns:    []*schema.Column{OrdersColumns[4]},
+				RefColumns: []*schema.Column{AddressesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "orders_drones_current_order",
+				Columns:    []*schema.Column{OrdersColumns[5]},
+				RefColumns: []*schema.Column{DronesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "orders_products_product_order",
+				Columns:    []*schema.Column{OrdersColumns[6]},
+				RefColumns: []*schema.Column{ProductsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "orders_users_user_orders",
+				Columns:    []*schema.Column{OrdersColumns[7]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "orders_warehouses_warehouse_order",
+				Columns:    []*schema.Column{OrdersColumns[8]},
+				RefColumns: []*schema.Column{WarehousesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 		},
 	}
 	// ProductsColumns holds the columns for the "products" table.
 	ProductsColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeUUID},
-		{Name: "price", Type: field.TypeInt},
+		{Name: "id", Type: field.TypeUUID, Unique: true},
+		{Name: "price", Type: field.TypeFloat64},
 		{Name: "title", Type: field.TypeString},
 		{Name: "description", Type: field.TypeString},
 		{Name: "name", Type: field.TypeString},
@@ -48,7 +113,7 @@ var (
 	}
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeUUID},
+		{Name: "id", Type: field.TypeUUID, Unique: true},
 		{Name: "username", Type: field.TypeString, Unique: true},
 		{Name: "email", Type: field.TypeString, Unique: true},
 		{Name: "first_name", Type: field.TypeString},
@@ -63,14 +128,37 @@ var (
 		Columns:    UsersColumns,
 		PrimaryKey: []*schema.Column{UsersColumns[0]},
 	}
+	// WarehousesColumns holds the columns for the "warehouses" table.
+	WarehousesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID, Unique: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString},
+		{Name: "address_line", Type: field.TypeString},
+		{Name: "latitude", Type: field.TypeFloat64},
+		{Name: "longtitude", Type: field.TypeFloat64},
+	}
+	// WarehousesTable holds the schema information for the "warehouses" table.
+	WarehousesTable = &schema.Table{
+		Name:       "warehouses",
+		Columns:    WarehousesColumns,
+		PrimaryKey: []*schema.Column{WarehousesColumns[0]},
+	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		AddressesTable,
+		DronesTable,
+		OrdersTable,
 		ProductsTable,
 		UsersTable,
+		WarehousesTable,
 	}
 )
 
 func init() {
 	AddressesTable.ForeignKeys[0].RefTable = UsersTable
+	OrdersTable.ForeignKeys[0].RefTable = AddressesTable
+	OrdersTable.ForeignKeys[1].RefTable = DronesTable
+	OrdersTable.ForeignKeys[2].RefTable = ProductsTable
+	OrdersTable.ForeignKeys[3].RefTable = UsersTable
+	OrdersTable.ForeignKeys[4].RefTable = WarehousesTable
 }

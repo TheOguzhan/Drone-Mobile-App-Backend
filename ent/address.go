@@ -8,6 +8,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/address"
+	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/order"
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/user"
 	"github.com/google/uuid"
 )
@@ -25,34 +26,51 @@ type Address struct {
 	Latitude float64 `json:"latitude,omitempty"`
 	// Longtitude holds the value of the "longtitude" field.
 	Longtitude float64 `json:"longtitude,omitempty"`
+	// Description holds the value of the "description" field.
+	Description string `json:"description,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the AddressQuery when eager-loading is set.
 	Edges               AddressEdges `json:"edges"`
-	user_address_slaves *uuid.UUID
+	user_user_addresses *uuid.UUID
 }
 
 // AddressEdges holds the relations/edges for other nodes in the graph.
 type AddressEdges struct {
-	// AddressMaster holds the value of the address_master edge.
-	AddressMaster *User `json:"address_master,omitempty"`
+	// AddressOwner holds the value of the address_owner edge.
+	AddressOwner *User `json:"address_owner,omitempty"`
+	// AddressOrder holds the value of the address_order edge.
+	AddressOrder *Order `json:"address_order,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 	// totalCount holds the count of the edges above.
-	totalCount [1]map[string]int
+	totalCount [2]map[string]int
 }
 
-// AddressMasterOrErr returns the AddressMaster value or an error if the edge
+// AddressOwnerOrErr returns the AddressOwner value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
-func (e AddressEdges) AddressMasterOrErr() (*User, error) {
+func (e AddressEdges) AddressOwnerOrErr() (*User, error) {
 	if e.loadedTypes[0] {
-		if e.AddressMaster == nil {
+		if e.AddressOwner == nil {
 			// Edge was loaded but was not found.
 			return nil, &NotFoundError{label: user.Label}
 		}
-		return e.AddressMaster, nil
+		return e.AddressOwner, nil
 	}
-	return nil, &NotLoadedError{edge: "address_master"}
+	return nil, &NotLoadedError{edge: "address_owner"}
+}
+
+// AddressOrderOrErr returns the AddressOrder value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e AddressEdges) AddressOrderOrErr() (*Order, error) {
+	if e.loadedTypes[1] {
+		if e.AddressOrder == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: order.Label}
+		}
+		return e.AddressOrder, nil
+	}
+	return nil, &NotLoadedError{edge: "address_order"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -62,11 +80,11 @@ func (*Address) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case address.FieldLatitude, address.FieldLongtitude:
 			values[i] = new(sql.NullFloat64)
-		case address.FieldName, address.FieldAddressLine:
+		case address.FieldName, address.FieldAddressLine, address.FieldDescription:
 			values[i] = new(sql.NullString)
 		case address.FieldID:
 			values[i] = new(uuid.UUID)
-		case address.ForeignKeys[0]: // user_address_slaves
+		case address.ForeignKeys[0]: // user_user_addresses
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		default:
 			return nil, fmt.Errorf("unexpected column %q for type Address", columns[i])
@@ -113,21 +131,32 @@ func (a *Address) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				a.Longtitude = value.Float64
 			}
+		case address.FieldDescription:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field description", values[i])
+			} else if value.Valid {
+				a.Description = value.String
+			}
 		case address.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullScanner); !ok {
-				return fmt.Errorf("unexpected type %T for field user_address_slaves", values[i])
+				return fmt.Errorf("unexpected type %T for field user_user_addresses", values[i])
 			} else if value.Valid {
-				a.user_address_slaves = new(uuid.UUID)
-				*a.user_address_slaves = *value.S.(*uuid.UUID)
+				a.user_user_addresses = new(uuid.UUID)
+				*a.user_user_addresses = *value.S.(*uuid.UUID)
 			}
 		}
 	}
 	return nil
 }
 
-// QueryAddressMaster queries the "address_master" edge of the Address entity.
-func (a *Address) QueryAddressMaster() *UserQuery {
-	return NewAddressClient(a.config).QueryAddressMaster(a)
+// QueryAddressOwner queries the "address_owner" edge of the Address entity.
+func (a *Address) QueryAddressOwner() *UserQuery {
+	return NewAddressClient(a.config).QueryAddressOwner(a)
+}
+
+// QueryAddressOrder queries the "address_order" edge of the Address entity.
+func (a *Address) QueryAddressOrder() *OrderQuery {
+	return NewAddressClient(a.config).QueryAddressOrder(a)
 }
 
 // Update returns a builder for updating this Address.
@@ -164,6 +193,9 @@ func (a *Address) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("longtitude=")
 	builder.WriteString(fmt.Sprintf("%v", a.Longtitude))
+	builder.WriteString(", ")
+	builder.WriteString("description=")
+	builder.WriteString(a.Description)
 	builder.WriteByte(')')
 	return builder.String()
 }

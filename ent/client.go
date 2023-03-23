@@ -16,8 +16,11 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/address"
+	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/drone"
+	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/order"
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/product"
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/user"
+	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/warehouse"
 )
 
 // Client is the client that holds all ent builders.
@@ -27,10 +30,16 @@ type Client struct {
 	Schema *migrate.Schema
 	// Address is the client for interacting with the Address builders.
 	Address *AddressClient
+	// Drone is the client for interacting with the Drone builders.
+	Drone *DroneClient
+	// Order is the client for interacting with the Order builders.
+	Order *OrderClient
 	// Product is the client for interacting with the Product builders.
 	Product *ProductClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
+	// Warehouse is the client for interacting with the Warehouse builders.
+	Warehouse *WarehouseClient
 }
 
 // NewClient creates a new client configured with the given options.
@@ -45,8 +54,11 @@ func NewClient(opts ...Option) *Client {
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.Address = NewAddressClient(c.config)
+	c.Drone = NewDroneClient(c.config)
+	c.Order = NewOrderClient(c.config)
 	c.Product = NewProductClient(c.config)
 	c.User = NewUserClient(c.config)
+	c.Warehouse = NewWarehouseClient(c.config)
 }
 
 type (
@@ -127,11 +139,14 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:     ctx,
-		config:  cfg,
-		Address: NewAddressClient(cfg),
-		Product: NewProductClient(cfg),
-		User:    NewUserClient(cfg),
+		ctx:       ctx,
+		config:    cfg,
+		Address:   NewAddressClient(cfg),
+		Drone:     NewDroneClient(cfg),
+		Order:     NewOrderClient(cfg),
+		Product:   NewProductClient(cfg),
+		User:      NewUserClient(cfg),
+		Warehouse: NewWarehouseClient(cfg),
 	}, nil
 }
 
@@ -149,11 +164,14 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:     ctx,
-		config:  cfg,
-		Address: NewAddressClient(cfg),
-		Product: NewProductClient(cfg),
-		User:    NewUserClient(cfg),
+		ctx:       ctx,
+		config:    cfg,
+		Address:   NewAddressClient(cfg),
+		Drone:     NewDroneClient(cfg),
+		Order:     NewOrderClient(cfg),
+		Product:   NewProductClient(cfg),
+		User:      NewUserClient(cfg),
+		Warehouse: NewWarehouseClient(cfg),
 	}, nil
 }
 
@@ -182,17 +200,21 @@ func (c *Client) Close() error {
 // Use adds the mutation hooks to all the entity clients.
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
-	c.Address.Use(hooks...)
-	c.Product.Use(hooks...)
-	c.User.Use(hooks...)
+	for _, n := range []interface{ Use(...Hook) }{
+		c.Address, c.Drone, c.Order, c.Product, c.User, c.Warehouse,
+	} {
+		n.Use(hooks...)
+	}
 }
 
 // Intercept adds the query interceptors to all the entity clients.
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
-	c.Address.Intercept(interceptors...)
-	c.Product.Intercept(interceptors...)
-	c.User.Intercept(interceptors...)
+	for _, n := range []interface{ Intercept(...Interceptor) }{
+		c.Address, c.Drone, c.Order, c.Product, c.User, c.Warehouse,
+	} {
+		n.Intercept(interceptors...)
+	}
 }
 
 // Mutate implements the ent.Mutator interface.
@@ -200,10 +222,16 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
 	case *AddressMutation:
 		return c.Address.mutate(ctx, m)
+	case *DroneMutation:
+		return c.Drone.mutate(ctx, m)
+	case *OrderMutation:
+		return c.Order.mutate(ctx, m)
 	case *ProductMutation:
 		return c.Product.mutate(ctx, m)
 	case *UserMutation:
 		return c.User.mutate(ctx, m)
+	case *WarehouseMutation:
+		return c.Warehouse.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
 	}
@@ -302,15 +330,31 @@ func (c *AddressClient) GetX(ctx context.Context, id uuid.UUID) *Address {
 	return obj
 }
 
-// QueryAddressMaster queries the address_master edge of a Address.
-func (c *AddressClient) QueryAddressMaster(a *Address) *UserQuery {
+// QueryAddressOwner queries the address_owner edge of a Address.
+func (c *AddressClient) QueryAddressOwner(a *Address) *UserQuery {
 	query := (&UserClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := a.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(address.Table, address.FieldID, id),
 			sqlgraph.To(user.Table, user.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, address.AddressMasterTable, address.AddressMasterColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, address.AddressOwnerTable, address.AddressOwnerColumn),
+		)
+		fromV = sqlgraph.Neighbors(a.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryAddressOrder queries the address_order edge of a Address.
+func (c *AddressClient) QueryAddressOrder(a *Address) *OrderQuery {
+	query := (&OrderClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := a.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(address.Table, address.FieldID, id),
+			sqlgraph.To(order.Table, order.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, address.AddressOrderTable, address.AddressOrderColumn),
 		)
 		fromV = sqlgraph.Neighbors(a.driver.Dialect(), step)
 		return fromV, nil
@@ -340,6 +384,338 @@ func (c *AddressClient) mutate(ctx context.Context, m *AddressMutation) (Value, 
 		return (&AddressDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown Address mutation op: %q", m.Op())
+	}
+}
+
+// DroneClient is a client for the Drone schema.
+type DroneClient struct {
+	config
+}
+
+// NewDroneClient returns a client for the Drone from the given config.
+func NewDroneClient(c config) *DroneClient {
+	return &DroneClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `drone.Hooks(f(g(h())))`.
+func (c *DroneClient) Use(hooks ...Hook) {
+	c.hooks.Drone = append(c.hooks.Drone, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `drone.Intercept(f(g(h())))`.
+func (c *DroneClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Drone = append(c.inters.Drone, interceptors...)
+}
+
+// Create returns a builder for creating a Drone entity.
+func (c *DroneClient) Create() *DroneCreate {
+	mutation := newDroneMutation(c.config, OpCreate)
+	return &DroneCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Drone entities.
+func (c *DroneClient) CreateBulk(builders ...*DroneCreate) *DroneCreateBulk {
+	return &DroneCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Drone.
+func (c *DroneClient) Update() *DroneUpdate {
+	mutation := newDroneMutation(c.config, OpUpdate)
+	return &DroneUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *DroneClient) UpdateOne(d *Drone) *DroneUpdateOne {
+	mutation := newDroneMutation(c.config, OpUpdateOne, withDrone(d))
+	return &DroneUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *DroneClient) UpdateOneID(id uuid.UUID) *DroneUpdateOne {
+	mutation := newDroneMutation(c.config, OpUpdateOne, withDroneID(id))
+	return &DroneUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Drone.
+func (c *DroneClient) Delete() *DroneDelete {
+	mutation := newDroneMutation(c.config, OpDelete)
+	return &DroneDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *DroneClient) DeleteOne(d *Drone) *DroneDeleteOne {
+	return c.DeleteOneID(d.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *DroneClient) DeleteOneID(id uuid.UUID) *DroneDeleteOne {
+	builder := c.Delete().Where(drone.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &DroneDeleteOne{builder}
+}
+
+// Query returns a query builder for Drone.
+func (c *DroneClient) Query() *DroneQuery {
+	return &DroneQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeDrone},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Drone entity by its id.
+func (c *DroneClient) Get(ctx context.Context, id uuid.UUID) (*Drone, error) {
+	return c.Query().Where(drone.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *DroneClient) GetX(ctx context.Context, id uuid.UUID) *Drone {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryCurrentOrder queries the current_order edge of a Drone.
+func (c *DroneClient) QueryCurrentOrder(d *Drone) *OrderQuery {
+	query := (&OrderClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := d.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(drone.Table, drone.FieldID, id),
+			sqlgraph.To(order.Table, order.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, drone.CurrentOrderTable, drone.CurrentOrderColumn),
+		)
+		fromV = sqlgraph.Neighbors(d.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *DroneClient) Hooks() []Hook {
+	return c.hooks.Drone
+}
+
+// Interceptors returns the client interceptors.
+func (c *DroneClient) Interceptors() []Interceptor {
+	return c.inters.Drone
+}
+
+func (c *DroneClient) mutate(ctx context.Context, m *DroneMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&DroneCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&DroneUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&DroneUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&DroneDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Drone mutation op: %q", m.Op())
+	}
+}
+
+// OrderClient is a client for the Order schema.
+type OrderClient struct {
+	config
+}
+
+// NewOrderClient returns a client for the Order from the given config.
+func NewOrderClient(c config) *OrderClient {
+	return &OrderClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `order.Hooks(f(g(h())))`.
+func (c *OrderClient) Use(hooks ...Hook) {
+	c.hooks.Order = append(c.hooks.Order, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `order.Intercept(f(g(h())))`.
+func (c *OrderClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Order = append(c.inters.Order, interceptors...)
+}
+
+// Create returns a builder for creating a Order entity.
+func (c *OrderClient) Create() *OrderCreate {
+	mutation := newOrderMutation(c.config, OpCreate)
+	return &OrderCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Order entities.
+func (c *OrderClient) CreateBulk(builders ...*OrderCreate) *OrderCreateBulk {
+	return &OrderCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Order.
+func (c *OrderClient) Update() *OrderUpdate {
+	mutation := newOrderMutation(c.config, OpUpdate)
+	return &OrderUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *OrderClient) UpdateOne(o *Order) *OrderUpdateOne {
+	mutation := newOrderMutation(c.config, OpUpdateOne, withOrder(o))
+	return &OrderUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *OrderClient) UpdateOneID(id uuid.UUID) *OrderUpdateOne {
+	mutation := newOrderMutation(c.config, OpUpdateOne, withOrderID(id))
+	return &OrderUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Order.
+func (c *OrderClient) Delete() *OrderDelete {
+	mutation := newOrderMutation(c.config, OpDelete)
+	return &OrderDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *OrderClient) DeleteOne(o *Order) *OrderDeleteOne {
+	return c.DeleteOneID(o.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *OrderClient) DeleteOneID(id uuid.UUID) *OrderDeleteOne {
+	builder := c.Delete().Where(order.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &OrderDeleteOne{builder}
+}
+
+// Query returns a query builder for Order.
+func (c *OrderClient) Query() *OrderQuery {
+	return &OrderQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeOrder},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Order entity by its id.
+func (c *OrderClient) Get(ctx context.Context, id uuid.UUID) (*Order, error) {
+	return c.Query().Where(order.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *OrderClient) GetX(ctx context.Context, id uuid.UUID) *Order {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryCarrierDrone queries the carrier_drone edge of a Order.
+func (c *OrderClient) QueryCarrierDrone(o *Order) *DroneQuery {
+	query := (&DroneClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := o.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(order.Table, order.FieldID, id),
+			sqlgraph.To(drone.Table, drone.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, order.CarrierDroneTable, order.CarrierDroneColumn),
+		)
+		fromV = sqlgraph.Neighbors(o.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryUserOrder queries the user_order edge of a Order.
+func (c *OrderClient) QueryUserOrder(o *Order) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := o.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(order.Table, order.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, order.UserOrderTable, order.UserOrderColumn),
+		)
+		fromV = sqlgraph.Neighbors(o.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryOrderWarehouse queries the order_warehouse edge of a Order.
+func (c *OrderClient) QueryOrderWarehouse(o *Order) *WarehouseQuery {
+	query := (&WarehouseClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := o.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(order.Table, order.FieldID, id),
+			sqlgraph.To(warehouse.Table, warehouse.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, order.OrderWarehouseTable, order.OrderWarehouseColumn),
+		)
+		fromV = sqlgraph.Neighbors(o.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryOrderAddress queries the order_address edge of a Order.
+func (c *OrderClient) QueryOrderAddress(o *Order) *AddressQuery {
+	query := (&AddressClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := o.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(order.Table, order.FieldID, id),
+			sqlgraph.To(address.Table, address.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, order.OrderAddressTable, order.OrderAddressColumn),
+		)
+		fromV = sqlgraph.Neighbors(o.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryOrderProduct queries the order_product edge of a Order.
+func (c *OrderClient) QueryOrderProduct(o *Order) *ProductQuery {
+	query := (&ProductClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := o.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(order.Table, order.FieldID, id),
+			sqlgraph.To(product.Table, product.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, order.OrderProductTable, order.OrderProductColumn),
+		)
+		fromV = sqlgraph.Neighbors(o.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *OrderClient) Hooks() []Hook {
+	return c.hooks.Order
+}
+
+// Interceptors returns the client interceptors.
+func (c *OrderClient) Interceptors() []Interceptor {
+	return c.inters.Order
+}
+
+func (c *OrderClient) mutate(ctx context.Context, m *OrderMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&OrderCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&OrderUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&OrderUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&OrderDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Order mutation op: %q", m.Op())
 	}
 }
 
@@ -434,6 +810,22 @@ func (c *ProductClient) GetX(ctx context.Context, id uuid.UUID) *Product {
 		panic(err)
 	}
 	return obj
+}
+
+// QueryProductOrder queries the product_order edge of a Product.
+func (c *ProductClient) QueryProductOrder(pr *Product) *OrderQuery {
+	query := (&OrderClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := pr.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(product.Table, product.FieldID, id),
+			sqlgraph.To(order.Table, order.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, product.ProductOrderTable, product.ProductOrderColumn),
+		)
+		fromV = sqlgraph.Neighbors(pr.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
 }
 
 // Hooks returns the client hooks.
@@ -554,15 +946,31 @@ func (c *UserClient) GetX(ctx context.Context, id uuid.UUID) *User {
 	return obj
 }
 
-// QueryAddressSlaves queries the address_slaves edge of a User.
-func (c *UserClient) QueryAddressSlaves(u *User) *AddressQuery {
+// QueryUserAddresses queries the user_addresses edge of a User.
+func (c *UserClient) QueryUserAddresses(u *User) *AddressQuery {
 	query := (&AddressClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := u.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(user.Table, user.FieldID, id),
 			sqlgraph.To(address.Table, address.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, user.AddressSlavesTable, user.AddressSlavesColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.UserAddressesTable, user.UserAddressesColumn),
+		)
+		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryUserOrders queries the user_orders edge of a User.
+func (c *UserClient) QueryUserOrders(u *User) *OrderQuery {
+	query := (&OrderClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := u.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(order.Table, order.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.UserOrdersTable, user.UserOrdersColumn),
 		)
 		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
 		return fromV, nil
@@ -596,12 +1004,146 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 	}
 }
 
+// WarehouseClient is a client for the Warehouse schema.
+type WarehouseClient struct {
+	config
+}
+
+// NewWarehouseClient returns a client for the Warehouse from the given config.
+func NewWarehouseClient(c config) *WarehouseClient {
+	return &WarehouseClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `warehouse.Hooks(f(g(h())))`.
+func (c *WarehouseClient) Use(hooks ...Hook) {
+	c.hooks.Warehouse = append(c.hooks.Warehouse, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `warehouse.Intercept(f(g(h())))`.
+func (c *WarehouseClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Warehouse = append(c.inters.Warehouse, interceptors...)
+}
+
+// Create returns a builder for creating a Warehouse entity.
+func (c *WarehouseClient) Create() *WarehouseCreate {
+	mutation := newWarehouseMutation(c.config, OpCreate)
+	return &WarehouseCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Warehouse entities.
+func (c *WarehouseClient) CreateBulk(builders ...*WarehouseCreate) *WarehouseCreateBulk {
+	return &WarehouseCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Warehouse.
+func (c *WarehouseClient) Update() *WarehouseUpdate {
+	mutation := newWarehouseMutation(c.config, OpUpdate)
+	return &WarehouseUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *WarehouseClient) UpdateOne(w *Warehouse) *WarehouseUpdateOne {
+	mutation := newWarehouseMutation(c.config, OpUpdateOne, withWarehouse(w))
+	return &WarehouseUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *WarehouseClient) UpdateOneID(id uuid.UUID) *WarehouseUpdateOne {
+	mutation := newWarehouseMutation(c.config, OpUpdateOne, withWarehouseID(id))
+	return &WarehouseUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Warehouse.
+func (c *WarehouseClient) Delete() *WarehouseDelete {
+	mutation := newWarehouseMutation(c.config, OpDelete)
+	return &WarehouseDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *WarehouseClient) DeleteOne(w *Warehouse) *WarehouseDeleteOne {
+	return c.DeleteOneID(w.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *WarehouseClient) DeleteOneID(id uuid.UUID) *WarehouseDeleteOne {
+	builder := c.Delete().Where(warehouse.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &WarehouseDeleteOne{builder}
+}
+
+// Query returns a query builder for Warehouse.
+func (c *WarehouseClient) Query() *WarehouseQuery {
+	return &WarehouseQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeWarehouse},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Warehouse entity by its id.
+func (c *WarehouseClient) Get(ctx context.Context, id uuid.UUID) (*Warehouse, error) {
+	return c.Query().Where(warehouse.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *WarehouseClient) GetX(ctx context.Context, id uuid.UUID) *Warehouse {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryWarehouseOrder queries the warehouse_order edge of a Warehouse.
+func (c *WarehouseClient) QueryWarehouseOrder(w *Warehouse) *OrderQuery {
+	query := (&OrderClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := w.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(warehouse.Table, warehouse.FieldID, id),
+			sqlgraph.To(order.Table, order.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, warehouse.WarehouseOrderTable, warehouse.WarehouseOrderColumn),
+		)
+		fromV = sqlgraph.Neighbors(w.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *WarehouseClient) Hooks() []Hook {
+	return c.hooks.Warehouse
+}
+
+// Interceptors returns the client interceptors.
+func (c *WarehouseClient) Interceptors() []Interceptor {
+	return c.inters.Warehouse
+}
+
+func (c *WarehouseClient) mutate(ctx context.Context, m *WarehouseMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&WarehouseCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&WarehouseUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&WarehouseUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&WarehouseDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Warehouse mutation op: %q", m.Op())
+	}
+}
+
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Address, Product, User []ent.Hook
+		Address, Drone, Order, Product, User, Warehouse []ent.Hook
 	}
 	inters struct {
-		Address, Product, User []ent.Interceptor
+		Address, Drone, Order, Product, User, Warehouse []ent.Interceptor
 	}
 )

@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/address"
+	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/order"
 	"github.com/TheOguzhan/Drone-Mobile-App-Backend/ent/user"
 	"github.com/google/uuid"
 )
@@ -45,6 +46,12 @@ func (ac *AddressCreate) SetLongtitude(f float64) *AddressCreate {
 	return ac
 }
 
+// SetDescription sets the "description" field.
+func (ac *AddressCreate) SetDescription(s string) *AddressCreate {
+	ac.mutation.SetDescription(s)
+	return ac
+}
+
 // SetID sets the "id" field.
 func (ac *AddressCreate) SetID(u uuid.UUID) *AddressCreate {
 	ac.mutation.SetID(u)
@@ -59,15 +66,34 @@ func (ac *AddressCreate) SetNillableID(u *uuid.UUID) *AddressCreate {
 	return ac
 }
 
-// SetAddressMasterID sets the "address_master" edge to the User entity by ID.
-func (ac *AddressCreate) SetAddressMasterID(id uuid.UUID) *AddressCreate {
-	ac.mutation.SetAddressMasterID(id)
+// SetAddressOwnerID sets the "address_owner" edge to the User entity by ID.
+func (ac *AddressCreate) SetAddressOwnerID(id uuid.UUID) *AddressCreate {
+	ac.mutation.SetAddressOwnerID(id)
 	return ac
 }
 
-// SetAddressMaster sets the "address_master" edge to the User entity.
-func (ac *AddressCreate) SetAddressMaster(u *User) *AddressCreate {
-	return ac.SetAddressMasterID(u.ID)
+// SetAddressOwner sets the "address_owner" edge to the User entity.
+func (ac *AddressCreate) SetAddressOwner(u *User) *AddressCreate {
+	return ac.SetAddressOwnerID(u.ID)
+}
+
+// SetAddressOrderID sets the "address_order" edge to the Order entity by ID.
+func (ac *AddressCreate) SetAddressOrderID(id uuid.UUID) *AddressCreate {
+	ac.mutation.SetAddressOrderID(id)
+	return ac
+}
+
+// SetNillableAddressOrderID sets the "address_order" edge to the Order entity by ID if the given value is not nil.
+func (ac *AddressCreate) SetNillableAddressOrderID(id *uuid.UUID) *AddressCreate {
+	if id != nil {
+		ac = ac.SetAddressOrderID(*id)
+	}
+	return ac
+}
+
+// SetAddressOrder sets the "address_order" edge to the Order entity.
+func (ac *AddressCreate) SetAddressOrder(o *Order) *AddressCreate {
+	return ac.SetAddressOrderID(o.ID)
 }
 
 // Mutation returns the AddressMutation object of the builder.
@@ -125,8 +151,11 @@ func (ac *AddressCreate) check() error {
 	if _, ok := ac.mutation.Longtitude(); !ok {
 		return &ValidationError{Name: "longtitude", err: errors.New(`ent: missing required field "Address.longtitude"`)}
 	}
-	if _, ok := ac.mutation.AddressMasterID(); !ok {
-		return &ValidationError{Name: "address_master", err: errors.New(`ent: missing required edge "Address.address_master"`)}
+	if _, ok := ac.mutation.Description(); !ok {
+		return &ValidationError{Name: "description", err: errors.New(`ent: missing required field "Address.description"`)}
+	}
+	if _, ok := ac.mutation.AddressOwnerID(); !ok {
+		return &ValidationError{Name: "address_owner", err: errors.New(`ent: missing required edge "Address.address_owner"`)}
 	}
 	return nil
 }
@@ -179,12 +208,16 @@ func (ac *AddressCreate) createSpec() (*Address, *sqlgraph.CreateSpec) {
 		_spec.SetField(address.FieldLongtitude, field.TypeFloat64, value)
 		_node.Longtitude = value
 	}
-	if nodes := ac.mutation.AddressMasterIDs(); len(nodes) > 0 {
+	if value, ok := ac.mutation.Description(); ok {
+		_spec.SetField(address.FieldDescription, field.TypeString, value)
+		_node.Description = value
+	}
+	if nodes := ac.mutation.AddressOwnerIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   address.AddressMasterTable,
-			Columns: []string{address.AddressMasterColumn},
+			Table:   address.AddressOwnerTable,
+			Columns: []string{address.AddressOwnerColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
@@ -196,7 +229,26 @@ func (ac *AddressCreate) createSpec() (*Address, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.user_address_slaves = &nodes[0]
+		_node.user_user_addresses = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := ac.mutation.AddressOrderIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   address.AddressOrderTable,
+			Columns: []string{address.AddressOrderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUUID,
+					Column: order.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

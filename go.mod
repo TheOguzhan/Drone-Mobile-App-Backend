@@ -16,6 +16,7 @@ require (
 )
 
 require (
+	github.com/gofiber/template v1.7.5 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
